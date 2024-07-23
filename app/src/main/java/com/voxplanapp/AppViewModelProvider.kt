@@ -1,0 +1,48 @@
+package com.voxplanapp
+
+import android.app.Application
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.voxplanapp.shared.SharedViewModel
+import com.voxplanapp.ui.main.MainViewModel
+import com.voxplanapp.ui.goals.GoalEditViewModel
+import kotlinx.coroutines.Dispatchers
+
+object AppViewModelProvider {
+
+    val Factory = viewModelFactory {
+
+        // initialise a single instance of the SharedViewModel
+        // that is then used by all mainViewModels
+        val sharedViewModel = SharedViewModel()
+
+        initializer {
+            sharedViewModel
+        }
+
+        initializer {
+            MainViewModel(
+                voxPlanApplication().container.todoRepository,
+                ioDispatcher = Dispatchers.IO,
+                sharedViewModel = sharedViewModel
+            )
+        }
+
+        initializer {
+            GoalEditViewModel(
+                this.createSavedStateHandle(),
+                voxPlanApplication().container.todoRepository
+            )
+        }
+    }
+}
+
+/**
+ * Extension function to queries for [Application] object from voxPlanApplication()
+ * and returns an instance of [VoxPlanApplication].
+ */
+fun CreationExtras.voxPlanApplication(): VoxPlanApplication =
+    (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as VoxPlanApplication)

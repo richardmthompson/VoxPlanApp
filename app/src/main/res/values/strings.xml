@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Vox Plan App</string>
+    <string name="todo_input_bar_hint">Write your goal</string>
+    <string name="vox_plan_title">Vox Plan</string>
+    <string name="goal_edit_screen">Edit Goal</string>
+    <string name="save_button">Save</string>
+    <string name="goal_title">Goal description</string>
+    <string name="goal_details">Goal Details</string>
+    <string name="goal_notes">Notes</string>
+    <string name="is_goal_done">Completed ?</string>
+    <string name="goal_id_label">Goal id#</string>
+    <string name="reorder_upward">Move Up</string>
+    <string name="reorder_downward">Move Down</string>
+    <string name="reorder_right">Make Subgoal</string>
+    <string name="reorder_left">Make Goal</string>"
+</resources>
