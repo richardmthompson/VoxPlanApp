@@ -1,124 +1,256 @@
-# VISION
+# functionality
 
-To be a fully voice-interactive, intelligent goal setting and planning application 
-with an innovative user interface, as a platform for building ever better human computer
-collaboration. 
+* stores and represents recursive layers of goals and sub-goals
+* goals can be moved up and down:
+	- vertically within current list
+	- hierarchically across levels
+* breadcrumbs tracks current hierarchy
 
-# FUNCTIONALITY
+# current plan
 
-The primary function of Voxplan is to assist the user to create a roadmap or blueprint for the fulfilment of any number of complex goals, and then to implement time-management and psychological optimisation strategies to  facilitate the progressive achievement of those goals through management of an overall schedule as well as daily activities.
+# next up
 
-
-# PROJECT ROADMAP
-
-## In Progress... (please maintain a logical sequence!)
-
-1. Implement full Voxplan functions into GUI (main task)
-					DONE?
-	- Navigate between nodes.	^
-	- Edit goal			^
-	- Delete goal			(in prog)
-	- Move to L / R			^
-	- Move up / down
-	- Load				(prog)
-	- Save
-
-2. Visual management of nodes to fill existing window:
-	- 'Center' - re-centre the tree around a sub-node.
-	- 'Uncenter' - pressing up at the new 'root' node brings us back to the main node tree.
-
-3. Voice recognition of commands
-
-4. Colour coding & other styling of nodes
-	- choose colour of node / auto-colour on creation - use grades of colour for sub-nodes
-	- increase elaborate-ness of nodes according to how much time has been spent on them (gamification)
-
-5. Additional app parts:
-	- Day-planner & focus mode (perhaps create on mobile, then create integration with desktop and mobile app as part of later course content)
-	- e.g. morning planner (morning routine) / (evening routine)
-	- Brainstorm list & select / convert to tree.
-
-6. Movement of node tree with re-sizing of window
-	- maintain position of root node in center / top of window with re-sizing.
-
-7. Expansion / contraction of the tree viewing window, and how to navigate upwards/ downwards seamlessly for larger and larger trees.:
-	- 'center' function, which brings the selected node to the middle of the screen.
-	- also loading and saving sub-node trees to specific files, and managing file sturctures
+* what about representing existing data structures?? -> i.e. from python program, we do use infinitely recursive goal-nodes.
 
 
-## Next Up...
+# stages of implementation
 
-* Delete item
-* Move item: left, up, down, right
-* Save and load from different filenames
-* Reset entire list
-- Implement detailed goal functions (e.g. timeframe, reminders (?))
+__mirror voxplan data structure__
 
-## Future... 
+* goal_id, summary, details, + hierarchical structure for gui representation...
+# done
 
-* Ability to nest sub-files within goal-nodes, so that opening a specific goal node will recurse into the specific saved file, and bridging upwards out of file will save progress within that file.  Then we have abilities to split sections of the tree off into individual files, and settings concerning how sub-projects are viewed and interacted with in the GUI.
 
-* Ability to enter sequentialised series of actions, with timeframes, e.g. entire syllabus for AI MSc, which the app then keeps track of, prompts as to what should be being done on a specific day/time, gives rewards for accomplished tasks, keeps track of rewards attained, specific to the set.
+__destination screens__
 
-* how do we manage keyboard events with attributewin?
+* goal tree screen
+	- view different hierarchical levels
+# done
+	
+* goal add/edit details screen
+# done
+
+* daily planner screen
+
+* task focus screen 
+	-> prevent access to other screens
+
+* gamified success accruement screen
+
+
+__step 1__
+
+* base screen with 3-5 goals
+* sub-goals
+* add/edit goal screen
+# done
+
+__step 2__
+
+* represent sub-goals on main screen
+* save goals across quits
+* floating action button for adding goals
+
+__step 3__
+
+* day scheduling screen
+* navigation bar
+* month and week view
+
+__step4__
+
+* focus mode (?)
+
+__step 5__
+
+* load/retrieve goals to/from cloud storage
+* connection to desktop python
+* voice recognition for goal entry
+
+__step 6__
+
+* chat bot incorporated into adding goals
+
+
+# application components
+
+__time_planning__
+
+1. Bed time / wake up time --> set up daily screen
+
+2. morning routine (things to do when i wake up): when, how long, what, what sequence.
+	-> time of main work block?  Other time-blocks?
+	-> set up in diary
+	* what does this evening look like?
+	* are there other evenings in the week that are similar to this?
+		-> copy over, then refine afterwards
+	* loop through every day of the week, evening (dinner onwards)
 		
-	- remove keyboard control before sending focus to attributewin.
-			
-	- when attributewin receives focus:
-			- set the keyboard listener up.
-	- when closing attributewin
-		- unset the keyboard listener so that navmode can grab it again
-		- as the focus will be un-set upon closing,
-			we must control focus on exiting attributewin.
-		
-	**** I'VE GIVEN UP ON THIS ^^^^ THINK IT NEEDS A NEW INTERFACE TO BE IMPLEMENTED.....
-		
+	-> click to gamify / suggest or ask (are you doing this now?) - adjust schedule as needed
+	
+3. things to do before bed
+	-> set up night time sequence
+
+4. things I want to do later
+	-> set up reminders
+	-> onClick (notification): do you want to (a) schedule this now? (b) be reminded again later?
+		:: I will take action now.  requires action -> stay active until re-open app
 
 
-# COMPLETED
+__goal_management__
 
-- Basic command-line user interface
-- Build first version of hierarchical tree-structure 
-- Navigation methodology
-- Store goals in file and retrieve
+1. create hierarchical goal screens
+# done
 
+2. per day / per week quotas
 
+3. scheduling of activities
 
-# APPLICATION FEATURES
+4. gamified rewards for time spent
 
-1. Node view: To aid in its ongoing visual representation, as a structure of interconnected and hierarchical nodes.  To facilitate accelerated navigation of this structure with a combination of voice and keyboard interface.  To present this interface in a beautiful and intuitive way that is enjoyable and natural to use.
+5. week-end review of time-spent
 
-2. Day & task focus: To easily and quickly plan a day-schedule based on the above, along with a "Focus-mode" which has a countdown timer and 'prevents access' to other phone apps during focused individual work slots.
-	Ideas:
-	- Timetable 'templates' - a template for the day with overall activities time-boxed, which can then be filled in with specific tasks from the node structure.
-		- Focus mode: From this timetable, enter another 'focus screen' where a clock counts down, and afterwards, the time is 'banked' and visually represented somehow in the original node structure.  Nodes which have had more time banked into them are larger, and visually more impressive, detailed, etc. to illustrate the balance of work that is taking place at a glance. 
-	- Use specific time-management techniques, e.g. pomodoro, 52/17
-	- Notification and other apps - blocked for this time in the focus screen.
-	- For time-slot (e.g. 3 hours, time tech is suggested / selected.  Then the time-slot is completed using the selected timetech.
+6. review of strategies
 
-3. Recognise achievements within a gamified reward structure of sorts,
-	- Represent time spent and achivements garnered within specific sub-goal structures, visually as 'metamorphoses' of the graphical goal node representations...
-		--> Opportunity for creative A.I graphical representations?
-
-4. To aid in elaboration and visualisation of the overall plan and individual elements, using NLP & goal-setting psychology, to create an ever clearer map of the problem space and manage its components
-
-5. To use AI to sanity check the overall plan, suggest improvements and/or modifications to the sequence or elements; to keep the goals fresh, removing those that are no longer relevant, etc.
-	- Opportunity to include chat GPT as an advisor / AutoGPT- of sorts.
-	- Auto clean up of Task-lists and maintaining focus within goal tree to keep the application current
-
-6. To plan the achievement of goals over time, and check-in as to whether the plan is being followed:
-	- Particularly with managing routines to facilitate goal outcomes, e.g.:
-		- Are you following the planned schedule?
-		- If not, how does it need to be adjusted?
-
-7. Interactive journalling - using voice for journalling as prompted by ai
-	- Includes coaching and overcoming psychological barriers by ai
-
-8. More detailed project management ?
-	- Achievement timeframes and habit management (self-maintenance) programs
+7. coaching conversation <-> compare existing goal structures <-> decision tree <-> modify / add / remove / goals from / to hierarchy
 
 
-=======
-# voxplan
-Goal-setting and management application with voice recognition and other ai support (eventually)
->>>>>>> d3277d6229d842967d46ba3943a05aa946f7a867
+__focus_mode__
+
+1. time-slot determined by #time_planning, 
+	& organised into pomodoro / suitable rest-work periods
+	& represented as 'focus-mode' - (to prevent phone use during focus periods)
+	
+
+__time_tracking__
+
+(advanced)
+
+1. check-in: "are you doing this now?" -> adjust schedule accordingly
+
+2. voice notify -> upcoming schedule (perform 'phone call')
+
+3. ^^ #1 check-in but with voice!
+
+4. adjustment of schedule according to actual behaviour
+
+
+# ai assistant spec
+
+* morning 'phone call' : sets the plan for the day, goes through the proposed schedule, makes alterations where necessary (conversational & with corresponding highlights of the app where relevant)
+
+
+# app definition
+
+* __Android gamified planning and focusing app__
+	- Enables navigation and editing of goal structures
+	- Allows selection of a pre-existing goal and sequencing into timeline of day
+	- 'Focus mode' for time-periods of increased focus
+	- Gamified accruement of 'time-points'
+
+* task list app
+* connect to desktop python <-> goal structures
+* gamify
+* focus mode
+
+# feature break-down
+
+__Main screen:__
+
+* mvp: goal-nodes navigator
+	- can be simple list of goals, with sub-goals listed (to start with)
+	- eventually will have more intuitive interface
+
+* hierarchical structure, as in voxplan.py
+	- navigation 'down' and 'up' into and out-of sub-goals
+
+* goal-edit mode
+
+__sequencer__
+
+* sequence sub-goal list:
+	- define a time for a sequence to start,
+	- enter focus mode,
+	- click 'finished' - app logs time spent on subtask
+	- then moves on to next task immediately in focus mode.
+	- * can skip tasks*
+	- good for known sequences, e.g. morning routine, etc.
+	- can also provide time-limits to sub-elements (time-goals etc.) - focus mode then includes count-down for each element.
+	- show progress in list in real time (could be an expandable region in the screento give context, est'd time of the whole structure etc.
+	
+	
+* day-sequencing and timing-manager
+
+* focus mode
+
+* gamification:
+	+ building up of points per sub-goal and goal (over the week)
+	
+
+# summary 21 jun 2024
+
+Application Overview:
+The application is a goal management system built using Kotlin and Jetpack Compose for Android. It allows users to create, manage, and organize hierarchical goals and subgoals.
+
+Architecture:
+- The app follows the MVVM (Model-View-ViewModel) architecture.
+- It uses Room for local database storage.
+- Kotlin Coroutines and Flow are used for asynchronous operations and reactive programming.
+
+Key Components:
+
+1. Data Layer:
+   - TodoItem: The main data class representing a goal or subgoal.
+   - TodoDao: Data Access Object for database operations.
+   - TodoRepository: Mediates between the ViewModel and the database.
+
+2. ViewModel:
+   - MainViewModel: Manages the UI state and business logic for the main screen.
+
+3. UI Layer (Composables):
+   - MainScreen: The main container composable for the app's primary interface.
+   - GoalListContainer: Displays the list of goals and subgoals.
+   - GoalItem: Represents an individual goal in the list.
+   - SubGoalItem: Represents a subgoal within a goal.
+   - TodoInputBar: Allows users to input new goals.
+   - ReorderButtons: UI elements for reordering goals.
+
+Key Files:
+- MainScreen.kt: Contains the main UI composables.
+- MainViewModel.kt: Contains the ViewModel for the main screen.
+- TodoRepository.kt: Implements the repository pattern for data operations.
+- TodoDao.kt: Defines database operations.
+- AppDatabase.kt: Sets up the Room database.
+
+Workflow:
+1. The app starts at the MainScreen.
+2. Goals and subgoals are fetched from the repository and displayed in a list.
+3. Users can add new goals using the TodoInputBar.
+4. Goals can be expanded to show subgoals.
+5. Users can edit, delete, or reorder goals.
+
+Current Implementation Details:
+- Goals are stored in a Room database.
+- The UI observes changes in the data through StateFlows.
+- Reordering of goals is currently being implemented, focusing on top-level goals first.
+
+Challenges and Upcoming Features:
+- Implementing a robust reordering system for both top-level goals and subgoals.
+- Considering the addition of an 'order' field to the database schema to support reordering.
+- Enhancing the UI to better represent the hierarchical nature of goals and subgoals.
+
+Data Flow:
+1. User interactions in the UI trigger functions in the ViewModel.
+2. The ViewModel interacts with the Repository to perform data operations.
+3. The Repository uses the DAO to interact with the Room database.
+4. Changes in the database are observed via Flows, updating the UI reactively.
+
+Key Composables in Detail:
+- MainScreen: Orchestrates the overall layout, including the top app bar, goal list, and input bar.
+- GoalListContainer: A scrollable container that renders GoalItems.
+- GoalItem: Displays a goal's title, completion status, and handles expansion to show subgoals.
+- SubGoalItem: Similar to GoalItem but represents a subgoal and doesn't allow further nesting.
+- ReorderButtons: Provides UI controls for reordering goals.
+
+The application aims to provide a flexible, hierarchical goal management system with an intuitive UI and smooth user experience. The current focus is on implementing and refining the goal reordering functionality, starting with top-level goals and potentially expanding to handle subgoal reordering in the future.
+
