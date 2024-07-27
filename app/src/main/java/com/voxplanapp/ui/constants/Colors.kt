@@ -12,6 +12,8 @@ val TertiaryColor = Color(0xFF82babd)
 val TertiaryBorderColor = Color(0xFF51a0a3)
 val ActivatedColor = Color(0xFFB21720)
 
+val EventBoxColor = Color(0xFF41c300)
+
 //val ToolbarColor = Color(0xFFE0E0E0)
 val ToolbarColor = Color(0xFFfff2df)
 val ToolbarBorderColor = Color(0xFFffddb0)

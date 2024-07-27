@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import androidx.compose.runtime.setValue
+import com.voxplanapp.navigation.VoxPlanScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -29,7 +30,7 @@ class GoalEditViewModel(
 ): ViewModel() {
 
     // retrieves goalId from the saved state handle, if the process has re-started
-    private val goalId: Int = checkNotNull(savedStateHandle[GoalEditDestination.goalIdArg])
+    private val goalId: Int = checkNotNull(savedStateHandle[VoxPlanScreen.GoalEdit.goalIdArg])
 
     var goalUiState by mutableStateOf(GoalDetailsUiState())
         private set

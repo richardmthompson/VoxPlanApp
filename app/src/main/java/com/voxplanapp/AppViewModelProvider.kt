@@ -6,6 +6,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.voxplanapp.navigation.NavigationViewModel
 import com.voxplanapp.shared.SharedViewModel
 import com.voxplanapp.ui.main.MainViewModel
 import com.voxplanapp.ui.goals.GoalEditViewModel
@@ -36,6 +37,10 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 voxPlanApplication().container.todoRepository
             )
+        }
+
+        initializer {
+            NavigationViewModel()
         }
     }
 }

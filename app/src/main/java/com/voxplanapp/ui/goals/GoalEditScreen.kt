@@ -52,14 +52,6 @@ import com.voxplanapp.ui.constants.PrimaryLightColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-// creates a navigation pathway to feed the goal item into the GoalEditScreen from the Main Screen
-object GoalEditDestination {
-    val route = "goal_edit"
-    val titleRes = "Edit Goal"
-    const val goalIdArg = "goalId"
-    val routeWithArgs = "$route/{$goalIdArg}"
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalEditScreen(

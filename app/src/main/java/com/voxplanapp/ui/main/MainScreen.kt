@@ -37,6 +37,7 @@ import com.voxplanapp.AppViewModelProvider
 import com.voxplanapp.R
 import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.model.ActionMode
+import com.voxplanapp.navigation.BottomNavigationBar
 import com.voxplanapp.navigation.VoxPlanTopAppBar
 import com.voxplanapp.shared.SharedViewModel
 import com.voxplanapp.ui.constants.ActivatedColor
@@ -82,9 +83,9 @@ fun MainScreen(
             }
         },
         bottomBar = {
-            TodoInputBar(
-                onAddButtonClick = mainViewModel::addTodo
-            )
+            Column {
+                TodoInputBar(onAddButtonClick = mainViewModel::addTodo)
+            }
         }
     ) {
         Column(
