@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.voxplanapp.navigation.NavigationViewModel
 import com.voxplanapp.shared.SharedViewModel
+import com.voxplanapp.ui.calendar.SchedulerViewModel
 import com.voxplanapp.ui.main.MainViewModel
 import com.voxplanapp.ui.goals.GoalEditViewModel
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ object AppViewModelProvider {
         initializer {
             MainViewModel(
                 voxPlanApplication().container.todoRepository,
+                voxPlanApplication().container.eventRepository,
                 ioDispatcher = Dispatchers.IO,
                 sharedViewModel = sharedViewModel
             )
@@ -35,12 +37,21 @@ object AppViewModelProvider {
         initializer {
             GoalEditViewModel(
                 this.createSavedStateHandle(),
-                voxPlanApplication().container.todoRepository
+                sharedViewModel = sharedViewModel,
+                voxPlanApplication().container.todoRepository,
+                voxPlanApplication().container.eventRepository
             )
         }
 
         initializer {
             NavigationViewModel()
+        }
+
+        initializer {
+            SchedulerViewModel(
+                this.createSavedStateHandle(),
+                eventRepository = voxPlanApplication().container.eventRepository
+            )
         }
     }
 }

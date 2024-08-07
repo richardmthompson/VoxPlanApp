@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 interface AppContainer {
     val database: AppDatabase
     val todoRepository: TodoRepository
+    val eventRepository: EventRepository
 }
 
 class AppDataContainer(private val context: Context) : AppContainer {
@@ -20,7 +21,10 @@ class AppDataContainer(private val context: Context) : AppContainer {
         try {
             Room
                 .databaseBuilder(context, AppDatabase::class.java, "todo-db")
-                .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
+                .addMigrations(
+                    AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4,
+                    AppDatabase.MIGRATION_4_5,
+                    )
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -50,6 +54,9 @@ class AppDataContainer(private val context: Context) : AppContainer {
 
     override val todoRepository: TodoRepository by lazy {
         TodoRepository(database.todoDao())
+    }
+    override val eventRepository: EventRepository by lazy {
+        EventRepository(database.eventDao())
     }
 
 }

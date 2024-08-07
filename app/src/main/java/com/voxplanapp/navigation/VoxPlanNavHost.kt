@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavArgument
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -49,19 +50,25 @@ fun VoxPlanNavHost(
         ) {
             GoalEditScreen(
                 onNavigateUp = { navController.navigateUp() },
+                onNavigateToScheduler = { date ->
+                    navController.navigate("${VoxPlanScreen.DaySchedule.route}/${date}")
+                },
+                modifier = modifier.padding(innerPadding)
+            )
+        }
+        // navigation route into day scheduler.
+        composable(
+            route = VoxPlanScreen.DaySchedule.routeWithArgs,
+            arguments = listOf(navArgument(VoxPlanScreen.DaySchedule.dateArg) {
+                type = NavType.StringType
+            })
+        ) {
+            DaySchedule(
                 modifier = modifier.padding(innerPadding)
             )
         }
 
-        composable(
-            route = VoxPlanScreen.DaySchedule.route
-        ) {
-            val date = LocalDate.of(2024, 8,1)
-            DaySchedule(
-                date = date,
-                modifier = modifier.padding(innerPadding)
-            )
-        }
+
 
     }
 }

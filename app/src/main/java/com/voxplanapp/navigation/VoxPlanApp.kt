@@ -39,6 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import com.voxplanapp.AppViewModelProvider
 import com.voxplanapp.ui.constants.TertiaryBorderColor
 import com.voxplanapp.ui.constants.TopAppBarBgColor
+import java.time.LocalDate
 
 /**
  *  VoxPlanApp overall nav controller function.  Central navigation control for screen switching.
@@ -96,18 +97,26 @@ fun VoxPlanTopAppBar(
     )
 }
 
+
+data class BottomNavigationItem(
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+    val route: String
+)
+
 private val items = listOf(
     BottomNavigationItem(
         title = "Goals",
         selectedIcon = Icons.Filled.List,
         unselectedIcon = Icons.Outlined.List,
-        route = VoxPlanScreen.Main
+        route = VoxPlanScreen.Main.route
     ),
     BottomNavigationItem(
         title = "Schedule",
         selectedIcon = Icons.Filled.DateRange,
         unselectedIcon = Icons.Outlined.DateRange,
-        route = VoxPlanScreen.DaySchedule
+        route = VoxPlanScreen.DaySchedule.createRouteWithDate()
     )
 )
 
@@ -125,7 +134,15 @@ fun BottomNavigationBar(
                 selected = selectedItemIndex == index,
                 onClick = {
                     viewModel.setSelectedItemIndex(index)
-                    navController.navigate(item.route.route)
+                    navController.navigate(item.route) {
+                        // clear back stack and ensure we are saving states
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        // prevent re-launching screen, restoring original screen state if necessary
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 },
                 icon = {
                     Icon(
@@ -140,10 +157,3 @@ fun BottomNavigationBar(
         }
     }
 }
-
-data class BottomNavigationItem(
-    val title: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
-    val route: VoxPlanScreen
-)

@@ -34,9 +34,3 @@ class TodoRepository(private val todoDao: TodoDao) {
         todoDao.update(todo)
     }
 }
-
-
-data class GoalWithSubGoals(
-    val goal: TodoItem,
-    val subGoals: List<GoalWithSubGoals>
-)

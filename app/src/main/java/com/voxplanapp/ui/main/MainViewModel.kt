@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.data.TodoItem
 import com.voxplanapp.data.TodoRepository
@@ -26,11 +27,10 @@ import java.util.Collections
 
 class MainViewModel (
     private val repository: TodoRepository,
+    private val eventRepository: EventRepository,
     private val ioDispatcher: CoroutineDispatcher,
     private val sharedViewModel: SharedViewModel
 ) : ViewModel() {
-
-    private val MAX_DEPTH = 3
 
     // transform list of Todos from repository into an (ordered) mainUiState for the UI
     // and update this viewModel with breadcrumbs from shared viewModel
@@ -41,7 +41,7 @@ class MainViewModel (
 
         val currentParentId = breadcrumbs.lastOrNull()?.goal?.id
         MainUiState(
-            goalList = processGoals(todos, currentParentId),
+            goalList = sharedViewModel.processGoals(todos, currentParentId),
             breadcrumbs = breadcrumbs
         )
     }.stateIn(
@@ -49,24 +49,6 @@ class MainViewModel (
         started = SharingStarted.WhileSubscribed(5_000L),
         initialValue = MainUiState()
     )
-
-    // receives list of todos (from repository) and optional parent,
-    // returns list of goals at that level and their sub-goals
-    private fun processGoals(todos: List<TodoItem>, parentId: Int?, depth: Int = 1): List<GoalWithSubGoals> {
-        return todos.filter { it.parentId == parentId }
-            .sortedBy { it.order }
-            .map { goal ->
-                val subGoals = if (depth < MAX_DEPTH) {
-                    processGoals(todos, goal.id, depth + 1)
-                } else {
-                    emptyList()
-                }
-                GoalWithSubGoals(
-                    goal = goal,
-                    subGoals = subGoals
-                )
-            }
-    }
 
     fun clearBreadcrumbs() {
         sharedViewModel.clearBreadcrumbs()
