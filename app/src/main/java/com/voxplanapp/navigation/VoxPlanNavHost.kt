@@ -29,7 +29,8 @@ fun VoxPlanNavHost(
         modifier = Modifier.padding(10.dp)
     ) {
 
-        // this is the main goal listing screen
+        /* MAIN SCREEN */
+
         composable(route = VoxPlanScreen.Main.route) {
             MainScreen(
                 navigateToGoalEdit = {
@@ -40,6 +41,8 @@ fun VoxPlanNavHost(
                 modifier = modifier.padding(innerPadding)
             )
         }
+
+        /* GOAL EDIT SCREEN */
 
         composable(
             route = VoxPlanScreen.GoalEdit.routeWithArgs,
@@ -56,7 +59,9 @@ fun VoxPlanNavHost(
                 modifier = modifier.padding(innerPadding)
             )
         }
-        // navigation route into day scheduler.
+
+        /* DAY SCHEDULER */
+
         composable(
             route = VoxPlanScreen.DaySchedule.routeWithArgs,
             arguments = listOf(navArgument(VoxPlanScreen.DaySchedule.dateArg) {
@@ -67,8 +72,5 @@ fun VoxPlanNavHost(
                 modifier = modifier.padding(innerPadding)
             )
         }
-
-
-
     }
 }

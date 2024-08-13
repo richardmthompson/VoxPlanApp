@@ -8,6 +8,8 @@ val SmallDp: Dp = 4.dp
 val MediumDp: Dp = 8.dp
 val LargeDp: Dp = 16.dp
 
+val EventIconSize: Dp = 24.dp
+
 val TodoItemHeight: Dp = 48.dp
 val TodoItemIconSize: Dp = 24.dp
 val TodoItemActionButtonRippleRadius: Dp = 32.dp
