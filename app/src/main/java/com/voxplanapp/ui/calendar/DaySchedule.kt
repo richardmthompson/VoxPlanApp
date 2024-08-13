@@ -23,7 +23,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Recycling
@@ -128,17 +132,31 @@ fun DayHeader(
     date: LocalDate,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = date.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
-        textAlign = TextAlign.Center,
-        style = TextStyle(
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    )
+    Row(modifier = Modifier
+        .fillMaxWidth()
+    ) {
+        IconButton(onClick = {}) {
+            Icon(
+                Icons.Default.ArrowBackIosNew,
+                contentDescription = "Yesterday"
+            ) }
+        Text(
+            text = date.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+        IconButton(onClick = {}) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = "Tomorrow"
+            ) }
+    }
 }
 
 @Composable

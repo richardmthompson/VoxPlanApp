@@ -14,5 +14,6 @@ data class TodoItem(
     var notes: String? = null,
     var preferredTime: LocalTime? = null,
     var estDurationMins: Int? = null,
-    var frequency: RecurrenceType = RecurrenceType.NONE
+    var frequency: RecurrenceType = RecurrenceType.NONE,
+    var expanded: Boolean = true
 )

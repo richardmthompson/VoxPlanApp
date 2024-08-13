@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @TypeConverters(Converters::class)
-@Database(entities = [TodoItem::class, Event::class], version = 5)
+@Database(entities = [TodoItem::class, Event::class], version = 6)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun todoDao(): TodoDao
     abstract fun eventDao(): EventDao
@@ -44,6 +44,12 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE TodoItem ADD COLUMN preferredTime TEXT")
                 database.execSQL("ALTER TABLE TodoItem ADD COLUMN estDurationMins INTEGER")
                 database.execSQL("ALTER TABLE TodoItem ADD COLUMN frequency TEXT NOT NULL DEFAULT 'NONE'")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5,6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE TodoItem ADD COLUMN expanded INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

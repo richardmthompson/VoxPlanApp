@@ -51,12 +51,13 @@ import com.voxplanapp.ui.constants.*
 fun GoalItem(
     goal: GoalWithSubGoals,
     onItemClick: (Int) -> Unit = {},
+    saveExpandedSetting: (Int, Boolean) -> Unit,
     onSubGoalsClick: (GoalWithSubGoals) -> Unit = {},
     onItemDelete: (GoalWithSubGoals) -> Unit = {},
     actionMode: ActionMode,
     onItemReorder: (GoalWithSubGoals) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(goal.goal.expanded) }
 
     val backgroundColor = if (goal.goal.isDone) TodoItemBackgroundColor.copy(alpha = 0.5f) else TodoItemBackgroundColor
     val textColor = if (goal.goal.isDone) TodoItemTextColor.copy(alpha = 0.5f) else TodoItemTextColor
@@ -101,7 +102,11 @@ fun GoalItem(
                 if (goal.subGoals.isNotEmpty()) {
                     frontPadding = 0.dp
                     IconButton(
-                        onClick = { expanded = !expanded },
+                        onClick = {
+                            expanded = !expanded
+                            // now also modify the database so the setting is saved.
+                            saveExpandedSetting(goal.goal.id, expanded)
+                                  },
                         modifier = Modifier.size(TodoItemActionButtonRippleRadius)
                     ) {
                         Icon(

@@ -369,7 +369,13 @@ class MainViewModel (
 
         // add record to repository
         viewModelScope.launch(ioDispatcher) {
-            repository.insert(TodoItem(title = todo, order = order, parentId = parentGoal?.goal?.id))
+            repository.insert(TodoItem(title = todo, order = order, parentId = parentGoal?.goal?.id, expanded = true))
+        }
+    }
+
+    fun saveExpandedSetting(todoId: Int, expanded: Boolean) {
+        viewModelScope.launch(ioDispatcher) {
+            repository.expandItem(todoId, expanded)
         }
     }
 

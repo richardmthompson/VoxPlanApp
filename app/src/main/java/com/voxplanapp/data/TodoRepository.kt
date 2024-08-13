@@ -13,6 +13,8 @@ class TodoRepository(private val todoDao: TodoDao) {
 
     fun getRootTodos() : List<TodoItem> = todoDao.getRootTodos()
 
+    suspend fun expandItem(todoId: Int, expand: Boolean) = todoDao.expandItem(todoId, expand)
+
     fun getChildrenOf(parentId: Int): List<TodoItem> = todoDao.getChildrenOf(parentId)
 
     // insert new todo

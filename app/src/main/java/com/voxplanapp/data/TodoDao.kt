@@ -31,6 +31,9 @@ interface TodoDao {
     @Query("UPDATE TodoItem SET 'order' = :newOrder WHERE id = :id")
     suspend fun updateItemOrder(id: Int, newOrder: Int)
 
+    @Query("UPDATE TodoItem SET 'expanded' = :expand WHERE id = :id")
+    suspend fun expandItem(id: Int, expand: Boolean)
+
     @Query("DELETE FROM TodoItem WHERE id = :id")
     suspend fun deleteById(id: Int)
 

@@ -22,6 +22,7 @@ fun GoalListContainer(
     modifier: Modifier = Modifier,
     goalList: List<GoalWithSubGoals>,
     onItemClick: (Int) -> Unit = {},
+    saveExpandedSetting: (Int, Boolean) -> Unit,
     onSubGoalsClick: (GoalWithSubGoals) -> Unit = {},
     onItemDelete: (GoalWithSubGoals) -> Unit = {},
     onItemReorder: (GoalWithSubGoals) -> Unit,
@@ -39,6 +40,7 @@ fun GoalListContainer(
                 goal = goalWithSubGoals,
                 // the item click is a callback to the Edit screen, installed from NavHost
                 onItemClick = onItemClick,
+                saveExpandedSetting = saveExpandedSetting,
                 onSubGoalsClick = onSubGoalsClick,
                 onItemDelete = onItemDelete,
                 onItemReorder = onItemReorder,

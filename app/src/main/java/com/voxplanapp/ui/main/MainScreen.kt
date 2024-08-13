@@ -109,6 +109,7 @@ fun MainScreen(
             GoalListContainer(
                 goalList = mainUiState.goalList,
                 onItemClick = navigateToGoalEdit,
+                saveExpandedSetting = mainViewModel::saveExpandedSetting,
                 onSubGoalsClick = mainViewModel::navigateToSubGoals,
                 onItemDelete = mainViewModel::deleteItem,
                 onItemReorder = mainViewModel::reorderItem,
