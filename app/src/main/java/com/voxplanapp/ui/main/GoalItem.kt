@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Stream
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +55,7 @@ fun GoalItem(
     saveExpandedSetting: (Int, Boolean) -> Unit,
     onSubGoalsClick: (GoalWithSubGoals) -> Unit = {},
     onItemDelete: (GoalWithSubGoals) -> Unit = {},
+    onEnterFocusMode: (Int) -> Unit,
     actionMode: ActionMode,
     onItemReorder: (GoalWithSubGoals) -> Unit
 ) {
@@ -130,7 +132,8 @@ fun GoalItem(
 
                 HasSubGoalsIcon(goal = goal, onSubGoalsClick = onSubGoalsClick)
 
-                TickBoxIcon(goal = goal)
+                FocusModeIcon(goal = goal, onEnterFocusMode = onEnterFocusMode)
+                //TickBoxIcon(goal = goal)
 
                 TrashIcon(goal = goal, onItemDelete = onItemDelete)
             }
@@ -151,6 +154,7 @@ fun GoalItem(
                     subGoal = subGoal,
                     onSubItemEdit = onItemClick,
                     onSubGoalsClick = onSubGoalsClick,
+                    onEnterFocusMode = onEnterFocusMode,
                     onSubItemDelete = onItemDelete,
                     onSubItemReorder = onItemReorder,
                     actionMode = actionMode,
@@ -174,6 +178,7 @@ fun SubGoalItem(
     subGoal: GoalWithSubGoals,
     onSubItemEdit: (Int) -> Unit,
     onSubGoalsClick: (GoalWithSubGoals) -> Unit,
+    onEnterFocusMode: (Int) -> Unit,
     onSubItemDelete: (GoalWithSubGoals) -> Unit,
     actionMode: ActionMode,
     onSubItemReorder: (GoalWithSubGoals) -> Unit,
@@ -193,7 +198,7 @@ fun SubGoalItem(
                     else -> onSubItemEdit(subGoal.goal.id)
                 }
             }
-            .padding(MediumDp),
+            .padding(vertical = 0.dp, horizontal = MediumDp),
         verticalAlignment = Alignment.CenterVertically
     ) {
 
@@ -207,7 +212,8 @@ fun SubGoalItem(
 
         HasSubGoalsIcon(goal = subGoal, onSubGoalsClick = onSubGoalsClick)
 
-        TickBoxIcon(goal = subGoal)
+        FocusModeIcon(goal = subGoal, onEnterFocusMode = onEnterFocusMode)
+        //TickBoxIcon(goal = subGoal)
 
         TrashIcon(
             goal = subGoal,
@@ -230,6 +236,24 @@ fun HasSubGoalsIcon(goal: GoalWithSubGoals, onSubGoalsClick: (GoalWithSubGoals) 
             )
         }
     }
+}
+
+@Composable
+fun FocusModeIcon(
+    goal: GoalWithSubGoals,
+    onEnterFocusMode: (Int) -> Unit,
+    ) {
+    IconButton(
+        onClick = { onEnterFocusMode(goal.goal.id) }
+        ) {
+            Icon(
+                Icons.Default.Stream,
+                contentDescription = "Focus Mode",
+                modifier = Modifier
+                    .size(SubGoalItemIconSize)
+                    .padding(0.dp)
+            )
+        }
 }
 
 @Composable

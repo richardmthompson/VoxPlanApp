@@ -24,4 +24,14 @@ sealed class VoxPlanScreen(val route: String) {
         }
     }
 
+    object FocusMode : VoxPlanScreen("focus_mode") {
+        const val goalIdArg = "goalId"
+        const val eventIdArg = "eventId"
+
+        val routeWithArgs = "$route/{$goalIdArg}"
+        val routeWithEventArg = "$route?$eventIdArg={$eventIdArg}"
+
+        fun createRouteFromGoal(goalId: Int): String = "$route/$goalId"
+        fun createRouteFromEvent(eventId: Int): String = "$route?$eventIdArg=$eventId"
+    }
 }

@@ -24,6 +24,7 @@ fun GoalListContainer(
     onItemClick: (Int) -> Unit = {},
     saveExpandedSetting: (Int, Boolean) -> Unit,
     onSubGoalsClick: (GoalWithSubGoals) -> Unit = {},
+    onEnterFocusMode: (Int) -> Unit,
     onItemDelete: (GoalWithSubGoals) -> Unit = {},
     onItemReorder: (GoalWithSubGoals) -> Unit,
     actionMode: ActionMode,
@@ -44,6 +45,7 @@ fun GoalListContainer(
                 onSubGoalsClick = onSubGoalsClick,
                 onItemDelete = onItemDelete,
                 onItemReorder = onItemReorder,
+                onEnterFocusMode = onEnterFocusMode,
                 actionMode = actionMode
             )
         }

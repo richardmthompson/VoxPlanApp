@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.voxplanapp.navigation.NavigationViewModel
 import com.voxplanapp.shared.SharedViewModel
 import com.voxplanapp.ui.calendar.SchedulerViewModel
+import com.voxplanapp.ui.focusmode.FocusViewModel
 import com.voxplanapp.ui.main.MainViewModel
 import com.voxplanapp.ui.goals.GoalEditViewModel
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +52,15 @@ object AppViewModelProvider {
             SchedulerViewModel(
                 this.createSavedStateHandle(),
                 eventRepository = voxPlanApplication().container.eventRepository
+            )
+        }
+
+        initializer {
+            FocusViewModel(
+                this.createSavedStateHandle(),
+                todoRepository = voxPlanApplication().container.todoRepository,
+                eventRepository = voxPlanApplication().container.eventRepository,
+                sharedViewModel = sharedViewModel
             )
         }
     }

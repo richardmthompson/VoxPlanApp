@@ -356,7 +356,7 @@ class MainViewModel (
                 repository.updateItem(item)
             }
         }
-        deactivateButtons()
+        //deactivateButtons()
     }
 
     fun addTodo(todo: String) {

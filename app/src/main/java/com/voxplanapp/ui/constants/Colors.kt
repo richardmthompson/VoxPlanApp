@@ -14,12 +14,17 @@ val ActivatedColor = Color(0xFFB21720)
 
 val EventBoxColor = Color(0xFF41c300)
 
+val FocusColorWork = Color(0xFF000000)
+val FocusColorWorkText = Color(0xFFFFFFFF)
+
+val FocusColorRest = Color(0xFF000000)
+val FocusColorRestText = Color(0xFFFFFFFF)
+
 //val ToolbarColor = Color(0xFFE0E0E0)
 val ToolbarColor = Color(0xFFfff2df)
 val ToolbarBorderColor = Color(0xFFffddb0)
 //val ToolbarBorderColor = Color(0xFFBDBDBD)
 val ToolbarIconColor = Color(0xFF424242)
-
 val TopAppBarBgColor = TertiaryColor
 
 val TodoItemBackgroundColor = PrimaryLightColor

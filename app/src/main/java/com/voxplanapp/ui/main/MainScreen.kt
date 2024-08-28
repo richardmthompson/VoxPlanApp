@@ -48,6 +48,7 @@ import com.voxplanapp.ui.constants.PrimaryColor
 @Composable
 fun MainScreen(
     navigateToGoalEdit: (Int) -> Unit,
+    onEnterFocusMode: (Int) -> Unit,
     modifier: Modifier = Modifier,
     mainViewModel: MainViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -111,6 +112,7 @@ fun MainScreen(
                 onItemClick = navigateToGoalEdit,
                 saveExpandedSetting = mainViewModel::saveExpandedSetting,
                 onSubGoalsClick = mainViewModel::navigateToSubGoals,
+                onEnterFocusMode = onEnterFocusMode,
                 onItemDelete = mainViewModel::deleteItem,
                 onItemReorder = mainViewModel::reorderItem,
                 overlappingElementsHeight = OverlappingHeight,

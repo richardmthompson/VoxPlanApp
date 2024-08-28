@@ -1,5 +1,6 @@
 package com.voxplanapp.navigation
 
+import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -33,8 +35,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHost
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.voxplanapp.AppViewModelProvider
 import com.voxplanapp.ui.constants.TertiaryBorderColor
@@ -50,12 +54,62 @@ fun VoxPlanApp(
     navController: NavHostController = rememberNavController(),
     navigationViewModel: NavigationViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+
+    LaunchedEffect(navBackStackEntry) {
+        navBackStackEntry?.destination?.route?.let { route ->
+            when {
+                route.startsWith(VoxPlanScreen.Main.route) -> navigationViewModel.setSelectedItemIndex(0)
+                route.startsWith(VoxPlanScreen.DaySchedule.route) -> navigationViewModel.setSelectedItemIndex(1)
+            }
+        }
+    }
+
+
+    /*
+        navBackStackEntry?.let { entry ->
+
+            // debug loggin
+            val route = entry.destination.route
+            Log.d("Navigation", "VoxPlanApp (post-nav-update): Current route: $route")
+
+            val backStack = buildBackStackInfo(navController)
+            Log.d("Navigation", "VoxPlanApp (post-nav-update): Current backstack: ${backStack}")
+
+            // update selected index in viewModel
+        }
+
+     */
+
+    // prevent bottom bar from showing if we're in focus mode.
+    val currentRoute = navBackStackEntry?.destination?.route
+    val showBottomBar = currentRoute?.contains("focus_mode", ignoreCase = true) != true
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController, navigationViewModel) }
+        bottomBar = {
+            if (showBottomBar) {
+                BottomNavigationBar(navController, navigationViewModel)
+            }
+        }
     ) { innerPadding ->
         VoxPlanNavHost(navController = navController, innerPadding = innerPadding)
     }
+
+}
+
+fun buildBackStackInfo(navController: NavHostController): String {
+
+    val backStackInfo = mutableListOf<String>()
+    var currentEntry = navController.currentBackStackEntry
+
+    while (currentEntry != null) {
+        currentEntry.destination.route?.let { route ->
+            backStackInfo.add(0,route)
+        }
+        currentEntry = navController.previousBackStackEntry
+    }
+
+    return backStackInfo.joinToString(" -> ")
 
 }
 
@@ -133,7 +187,7 @@ fun BottomNavigationBar(
             NavigationBarItem(
                 selected = selectedItemIndex == index,
                 onClick = {
-                    viewModel.setSelectedItemIndex(index)
+                    Log.d("Navigation", "BottomNavBar: Clicked on ${item.title}")
                     navController.navigate(item.route) {
                         // clear back stack and ensure we are saving states
                         popUpTo(navController.graph.startDestinationId) {
@@ -141,8 +195,9 @@ fun BottomNavigationBar(
                         }
                         // prevent re-launching screen, restoring original screen state if necessary
                         launchSingleTop = true
-                        restoreState = true
+//                        restoreState = true
                     }
+                    Log.d("Navigation", "BottomNavBar: (popUpTo done) Navigated to ${item.route}")
                 },
                 icon = {
                     Icon(

@@ -84,6 +84,7 @@ import java.time.format.DateTimeFormatter
 fun GoalEditScreen(
     canNavigateBack: Boolean = true,
     onNavigateUp: () -> Unit,
+    onNavigateToFocusMode: (Int) -> Unit,
     onNavigateToScheduler: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GoalEditViewModel = viewModel(factory = AppViewModelProvider.Factory)
@@ -122,6 +123,7 @@ fun GoalEditScreen(
                     goal = uiState.goal,
                     parentGoalTitle = parentGoalTitle,
                     onValueChange = { attribute, value -> viewModel.updateGoalAttribute(attribute, value) },
+                    onNavigateToFocusMode = { goalId -> onNavigateToFocusMode(goalId) },
                     onScheduleClick = { showScheduleDialog = true },
                     onSaveClick = {
                         viewModel.saveGoal()
@@ -155,6 +157,7 @@ fun GoalEntryBody(
     parentGoalTitle: String?,
     onValueChange: (String, Any) -> Unit,
     onSaveClick: () -> Unit,
+    onNavigateToFocusMode: (Int) -> Unit,
     onScheduleClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -181,6 +184,7 @@ fun GoalEntryBody(
             // loads the input form with the current goal details from the Ui State
             goalWithSubGoals = goal,
             onValueChange = onValueChange,
+            onNavigateToFocusMode = { goalId -> onNavigateToFocusMode(goalId) },
             onScheduleClick = onScheduleClick,
             modifier = Modifier.fillMaxWidth()
         )
@@ -264,6 +268,7 @@ fun GoalHierarchyDisplay(
 fun GoalInputForm(
     goalWithSubGoals: GoalWithSubGoals,
     onValueChange: (String, Any) -> Unit,
+    onNavigateToFocusMode: (Int) -> Unit,
     onScheduleClick: () -> Unit,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
@@ -314,10 +319,15 @@ fun GoalInputForm(
             )
 
             Row (modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End) {
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Button(
+                    onClick = { onNavigateToFocusMode(goal.id) }
+                ) {
+                    Text("Focus Mode!")
+                }
                 Button(
                     onClick = { onScheduleClick() },
-                ) { Text("Schedule Now!") }
+                ) { Text("Schedule!") }
             }
         }
 

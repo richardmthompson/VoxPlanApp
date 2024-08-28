@@ -19,6 +19,9 @@ interface EventDao {
     @Query("SELECT * FROM Event WHERE startDate = :date")
     fun getEventsForDate(date: LocalDate): Flow<List<Event>>
 
+    @Query("SELECT * FROM Event WHERE id = :eventId")
+    suspend fun getEvent(eventId: Int): Event
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvent(event: Event)
 

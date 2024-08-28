@@ -1,5 +1,6 @@
 package com.voxplanapp.navigation
 
+import android.util.Log
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.voxplanapp.ui.calendar.DaySchedule
+import com.voxplanapp.ui.focusmode.FocusModeScreen
 import com.voxplanapp.ui.goals.GoalEditScreen
 import com.voxplanapp.ui.main.MainScreen
 import java.time.LocalDate
@@ -32,12 +34,16 @@ fun VoxPlanNavHost(
         /* MAIN SCREEN */
 
         composable(route = VoxPlanScreen.Main.route) {
+            Log.d("Navigation", "NavHost: Composing Main route in NavHost")
             MainScreen(
                 navigateToGoalEdit = {
                     // creates a route string e.g. GoalEditDestination.route/123
                     // for editing specific Goal selected by clicking an item in todoList on MainScreen
                     navController.navigate("${VoxPlanScreen.GoalEdit.route}/${it}")
                 },
+                onEnterFocusMode = { goalId ->
+                        navController.navigate("${VoxPlanScreen.FocusMode.createRouteFromGoal(goalId)}")
+                    },
                 modifier = modifier.padding(innerPadding)
             )
         }
@@ -51,11 +57,20 @@ fun VoxPlanNavHost(
                     type = NavType.IntType
                 })
         ) {
+            Log.d("Navigation", "NavHost: Composing GoalEdit route in NavHost")
             GoalEditScreen(
                 onNavigateUp = { navController.navigateUp() },
                 onNavigateToScheduler = { date ->
-                    navController.navigate("${VoxPlanScreen.DaySchedule.route}/${date}")
+                    navController.navigate("${VoxPlanScreen.DaySchedule.createRouteWithDate(date)}") {
+                        popUpTo(navController.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
                 },
+
+                onNavigateToFocusMode = { goalId ->
+                    navController.navigate("${VoxPlanScreen.FocusMode.createRouteFromGoal(goalId)}")
+                },
+
                 modifier = modifier.padding(innerPadding)
             )
         }
@@ -68,8 +83,37 @@ fun VoxPlanNavHost(
                 type = NavType.StringType
             })
         ) {
+            Log.d("Navigation", "NavHost: Composing DaySchedule route in NavHost")
             DaySchedule(
+                onEnterFocusMode = { event -> navController.navigate(VoxPlanScreen.FocusMode.createRouteFromEvent(event.id)) {
+                    popUpTo(VoxPlanScreen.DaySchedule.route)
+                    launchSingleTop = true
+                } },
                 modifier = modifier.padding(innerPadding)
+            )
+        }
+
+        /* FOCUS MODE */
+
+        composable(
+            route = VoxPlanScreen.FocusMode.routeWithArgs,
+            arguments = listOf(navArgument(VoxPlanScreen.FocusMode.goalIdArg) {
+                type = NavType.StringType
+            })
+        ) {
+            FocusModeScreen(
+                onNavigateUp = { navController.navigateUp() }
+            )
+        }
+
+        composable(
+            route = VoxPlanScreen.FocusMode.routeWithEventArg,
+            arguments = listOf(navArgument(VoxPlanScreen.FocusMode.eventIdArg) {
+                type = NavType.StringType
+            })
+        ) {
+            FocusModeScreen(
+                onNavigateUp = { navController.navigateUp() }
             )
         }
     }

@@ -8,6 +8,8 @@ class EventRepository (private val eventDao: EventDao) {
 
     fun getEventsForDate(date: LocalDate) = eventDao.getEventsForDate(date)
 
+    suspend fun getEvent(eventId: Int) = eventDao.getEvent(eventId)
+
     suspend fun insertEvent(event: Event) = eventDao.insertEvent(event)
     suspend fun updateEvent(event: Event) = eventDao.updateEvent(event)
     suspend fun deleteEvent(event: Event) = eventDao.deleteEvent(event)

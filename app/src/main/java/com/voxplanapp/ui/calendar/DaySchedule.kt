@@ -32,8 +32,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Stream
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -86,6 +90,7 @@ private val LocalScheduleParams = compositionLocalOf<ScheduleParams> {
 @Composable
 fun DaySchedule(
     modifier: Modifier = Modifier,
+    onEnterFocusMode: (Event) -> Unit,
     viewModel: SchedulerViewModel = viewModel(factory = AppViewModelProvider.Factory)
     ) {
     val hourHeight = 48.dp      // the size of the hourly intervals on screen
@@ -107,7 +112,12 @@ fun DaySchedule(
             .fillMaxSize()
             .background(Color.Yellow.copy(alpha = 0.1f))
     ) {
-        DayHeader(date = date)
+        DayHeader(
+            date = date,
+            backOneDay = { viewModel.updateDate(date.minusDays(1)) },
+            forwardOneDay = { viewModel.updateDate(date.plusDays(1)) },
+            showToday = { viewModel.updateDate(LocalDate.now()) }
+        )
         Row(
             modifier = Modifier
                 .weight(1f)
@@ -117,6 +127,7 @@ fun DaySchedule(
                 ScheduleSideBar()
                 BasicSchedule(
                     events = events,
+                    onEnterFocusMode = { event -> onEnterFocusMode(event) },
                     onEventUpdated = { updatedEvent -> viewModel.updateEvent(updatedEvent) },
                     onEventDeleted = { deletedEvent -> viewModel.deleteEvent(deletedEvent) },
                     modifier = Modifier
@@ -130,33 +141,66 @@ fun DaySchedule(
 @Composable
 fun DayHeader(
     date: LocalDate,
+    backOneDay: () -> Unit,
+    forwardOneDay: () -> Unit,
+    showToday: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier = Modifier
-        .fillMaxWidth()
-    ) {
-        IconButton(onClick = {}) {
-            Icon(
-                Icons.Default.ArrowBackIosNew,
-                contentDescription = "Yesterday"
-            ) }
-        Text(
-            text = date.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
-            textAlign = TextAlign.Center,
-            style = TextStyle(
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            ),
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
-        IconButton(onClick = {}) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForwardIos,
-                contentDescription = "Tomorrow"
-            ) }
-    }
+    Column(modifier = Modifier.padding(0.dp)) {
+
+        Row(modifier = Modifier
+            .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            IconButton(
+                onClick = { backOneDay() },
+                modifier = Modifier.padding(end = LargeDp)
+            ) {
+                Icon(
+                    Icons.Default.ArrowBackIosNew,
+                    contentDescription = "Yesterday"
+                ) }
+            Text(
+                text = date.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
+                textAlign = TextAlign.Center,
+                style = TextStyle(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = modifier
+                    .padding(vertical = 8.dp)
+            )
+            IconButton(
+                onClick = { forwardOneDay() },
+                modifier = Modifier.padding(start = LargeDp)
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = "Tomorrow"
+                ) }
+        }
+        Row(modifier = Modifier
+            .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Button(
+                onClick = { showToday() },
+                modifier = modifier
+                    .height(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                shape = RoundedCornerShape(MediumDp),
+            ) {
+                Text(
+                    text = "TODAY",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondary,
+                    modifier = Modifier
+                        .padding(0.dp)
+                        .offset(y = (-2).dp)
+                )
+            }
+        } // row
+    } // column
 }
 
 @Composable
@@ -178,6 +222,7 @@ fun ScheduleSideBar(modifier: Modifier = Modifier) {
 @Composable
 fun BasicSchedule(
     events: List<Event>,
+    onEnterFocusMode: (Event) -> Unit,
     onEventUpdated: (Event) -> Unit,
     onEventDeleted: (Event) -> Unit,
     modifier: Modifier = Modifier
@@ -271,6 +316,7 @@ fun BasicSchedule(
                 EventActions(
                     event = event,
                     hourHeight = hourHeight,
+                    onEnterFocusMode = { event -> onEnterFocusMode(event) },
                     onEventUpdated = { updatedEvent ->
                         onEventUpdated(updatedEvent)
                     },
@@ -429,6 +475,7 @@ fun EventBox(
 fun EventActions(
     event: Event,
     hourHeight: Dp,
+    onEnterFocusMode: (Event) -> Unit,
     onEventUpdated: (Event) -> Unit,
     onEventDeleted: (Event) -> Unit,
     modifier: Modifier = Modifier
@@ -459,13 +506,13 @@ fun EventActions(
         ) {
             // edit event button
             IconButton(
-                onClick = { },
+                onClick = { onEnterFocusMode(event) },
                 modifier = Modifier
                     .size(EventIconSize)
             ) {
                 Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Edit event",
+                    Icons.Default.Stream,
+                    contentDescription = "Focus Mode",
                     modifier = Modifier
                         .size(EventIconSize)
                         .padding(0.dp)
