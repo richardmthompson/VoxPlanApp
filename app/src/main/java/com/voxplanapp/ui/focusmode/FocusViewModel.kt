@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.GoalWithSubGoals
+import com.voxplanapp.data.TimeBankRepository
 import com.voxplanapp.data.TodoRepository
 import com.voxplanapp.navigation.VoxPlanScreen
 import com.voxplanapp.shared.SharedViewModel
@@ -30,6 +31,7 @@ class FocusViewModel(
     savedStateHandle: SavedStateHandle,
     private val todoRepository: TodoRepository,
     private val eventRepository: EventRepository,
+    private val timeBankRepository: TimeBankRepository,
     private val sharedViewModel: SharedViewModel
 ): ViewModel() {
 
@@ -154,6 +156,7 @@ class FocusViewModel(
 
     fun awardMedal() {
         val newMedal = Medal(focusUiState.clockFaceMins)
+
         focusUiState = focusUiState.copy(
             medals = focusUiState.medals + newMedal
         )
@@ -161,8 +164,34 @@ class FocusViewModel(
         startTimer()
     }
 
+    // this is the 'bank time' button in the timer controls.
+    // it grabs a worthwhile chunk of time from the timer and plops it into the vault.
+    fun bankTimer() {
+        // determine number of minutes on current time (displayed on timer)
+        val minutes = (focusUiState.currentTime % (1000 * 60 * 60)) / (1000 * 60)
+
+        // add medal to vault
+
+        // remove minutes from focusUiState current time
+
+        // pause timer
+
+    }
+
     fun bankTime() {
         val medalTime = focusUiState.medals.sumOf { it.minutes }
+
+        viewModelScope.launch {
+            val goalId = goalUiState?.goal?.id ?: return@launch
+            timeBankRepository.addTimeBankEntry(goalId, medalTime)
+        }
+
+        // clear medals
+        focusUiState = focusUiState.copy(medals = emptyList())
+
+        // log what happened
+        if (goalId != null) Log.d("TimeBank","Banked $medalTime minutes into goalId $goalId?")
+        else Log.d("TimeBank", "Trying to bank time failed, no goal id")
 
         // Update goal or event with accrued time
     }

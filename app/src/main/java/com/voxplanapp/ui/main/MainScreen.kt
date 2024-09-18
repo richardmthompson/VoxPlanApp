@@ -5,14 +5,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.Bottom
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowCircleDown
 import androidx.compose.material.icons.filled.ArrowCircleLeft
@@ -23,15 +31,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.voxplanapp.AppViewModelProvider
 import com.voxplanapp.R
@@ -54,14 +69,24 @@ fun MainScreen(
 ) {
     // receive UiState from the ViewModel (as a State, which causes recomposition upon change)
     val mainUiState by mainViewModel.mainUiState.collectAsState()
-    //val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val todayTotalTime by mainViewModel.todayTotalTime.collectAsState()
+
     val actionMode by mainViewModel.actionMode
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             Column {
+                if (mainUiState.breadcrumbs.isEmpty()) {
+                    PowerBar(
+                        totalMinutes = todayTotalTime,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                }
+
                 VoxPlanTopAppBar(
                     title = "",
                     canNavigateBack = false,
@@ -126,6 +151,75 @@ fun MainScreen(
                 )
             )
             }
+    }
+}
+
+@Composable
+fun PowerBar(totalMinutes: Int, modifier: Modifier = Modifier) {
+    val hours = totalMinutes / 60
+    val remainingMinutes = totalMinutes % 60
+    val bars = (0..3).map { minOf(60, maxOf(0, totalMinutes - it * 60)) }
+
+    Row(
+        modifier = modifier
+            .background(Color.Black, RoundedCornerShape(8.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "POWER:",
+            style = TextStyle(
+                color = Color(0xFFFF5722),
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                fontFamily = FontFamily.Monospace
+            ),
+            modifier = Modifier.padding(end = 16.dp)
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            bars.forEach { fillAmount ->
+                Box(
+                    modifier = Modifier
+                        .width(20.dp)
+                        .height(60.dp)
+                        .border(2.dp, Color(0xFF3F51B5))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .fillMaxHeight(fillAmount / 60f)
+                            .background(Color(0xFFFF0000))
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Coin display
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .background(Color(0xFFFFD700), CircleShape)
+                .border(2.dp, Color(0xFFFF5722), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$remainingMinutes",
+                style = TextStyle(
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            )
+        }
     }
 }
 

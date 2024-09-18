@@ -195,7 +195,7 @@ fun FocusModeScreen(
                                 focusUiState = focusUiState,
                                 onToggleTimer = { viewModel.toggleTimer() },
                                 onResetTimer = { viewModel.resetTimer() },
-                                onBankTime = { viewModel.bankTime() },
+                                onBankTime = { viewModel.bankTimer() },
                                 modifier = modifier
                             )
                         }
@@ -226,12 +226,11 @@ fun FocusModeScreen(
                     ) {
                         RetroButton(onClick = {
                             viewModel.bankTime()
-                            onNavigateUp
                         },
-                            buttonText = "Bank Time / Quit")
+                            buttonText = "Bank Medals")
 
                         RetroButton(onClick = onNavigateUp,
-                            buttonText = "Cancel Session")
+                            buttonText = "Quit")
                     }
                 }
             }
@@ -480,7 +479,7 @@ fun TimerControls(
         )
         RetroButton(
             onClick = onBankTime,
-            buttonText = "Bank Time"
+            buttonText = "Bank Minutes"
         )
     }
 }
@@ -524,7 +523,7 @@ fun RetroButton(
 fun MedalDisplay(medals: List<Medal>, modifier: Modifier = Modifier) {
     Text(
         "Time Vault:",
-        style = MaterialTheme.typography.bodyLarge
+        style = MaterialTheme.typography.headlineMedium,
     )
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -536,11 +535,10 @@ fun MedalDisplay(medals: List<Medal>, modifier: Modifier = Modifier) {
                     .size(40.dp)
                     .background(Color.Yellow, CircleShape)
                     .border(2.dp, Color(0xFFB38106), CircleShape),
-                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "${medal.minutes}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.Black
                 )
             }
@@ -591,7 +589,7 @@ val FocusModeTypography = Typography(
         fontSize = 32.sp,
     ),
     headlineMedium = TextStyle(
-        fontSize = 24.sp,
+        fontSize = 22.sp,
     ),
     bodyLarge = TextStyle(
         fontSize = 16.sp,

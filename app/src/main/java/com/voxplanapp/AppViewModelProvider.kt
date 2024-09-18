@@ -30,6 +30,7 @@ object AppViewModelProvider {
             MainViewModel(
                 voxPlanApplication().container.todoRepository,
                 voxPlanApplication().container.eventRepository,
+                voxPlanApplication().container.timeBankRepository,
                 ioDispatcher = Dispatchers.IO,
                 sharedViewModel = sharedViewModel
             )
@@ -60,6 +61,7 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 todoRepository = voxPlanApplication().container.todoRepository,
                 eventRepository = voxPlanApplication().container.eventRepository,
+                timeBankRepository = voxPlanApplication().container.timeBankRepository,
                 sharedViewModel = sharedViewModel
             )
         }

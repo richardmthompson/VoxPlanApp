@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.GoalWithSubGoals
+import com.voxplanapp.data.TimeBankRepository
 import com.voxplanapp.data.TodoItem
 import com.voxplanapp.data.TodoRepository
 import com.voxplanapp.model.ActionMode
@@ -23,11 +24,13 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import java.time.LocalDate
 import java.util.Collections
 
 class MainViewModel (
     private val repository: TodoRepository,
     private val eventRepository: EventRepository,
+    private val timeBankRepository: TimeBankRepository,
     private val ioDispatcher: CoroutineDispatcher,
     private val sharedViewModel: SharedViewModel
 ) : ViewModel() {
@@ -49,6 +52,15 @@ class MainViewModel (
         started = SharingStarted.WhileSubscribed(5_000L),
         initialValue = MainUiState()
     )
+
+    // set up daily power bar.  this will collect total time accrued in time bank in minutes.
+    val todayTotalTime: StateFlow<Int> = timeBankRepository.getTotalTimeForDate(LocalDate.now())
+        .map { it ?: 0 }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
 
     fun clearBreadcrumbs() {
         sharedViewModel.clearBreadcrumbs()

@@ -13,6 +13,7 @@ interface AppContainer {
     val database: AppDatabase
     val todoRepository: TodoRepository
     val eventRepository: EventRepository
+    val timeBankRepository: TimeBankRepository
 }
 
 class AppDataContainer(private val context: Context) : AppContainer {
@@ -23,7 +24,8 @@ class AppDataContainer(private val context: Context) : AppContainer {
                 .databaseBuilder(context, AppDatabase::class.java, "todo-db")
                 .addMigrations(
                     AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4,
-                    AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6
+                    AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
+                    AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8
                     )
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
@@ -48,7 +50,7 @@ class AppDataContainer(private val context: Context) : AppContainer {
             val version = database.openHelper.readableDatabase.version
             Log.d("AppDatabase", "Current database version: $version")
         } catch (e: Exception) {
-            Log.e("Appdatabase", "FUKKKKKKKED getting version")
+            Log.e("Appdatabase", "Error getting version", e)
         }
     }
 
@@ -58,5 +60,7 @@ class AppDataContainer(private val context: Context) : AppContainer {
     override val eventRepository: EventRepository by lazy {
         EventRepository(database.eventDao())
     }
-
+    override val timeBankRepository: TimeBankRepository by lazy {
+        TimeBankRepository(database.timeBankDao())
+    }
 }
