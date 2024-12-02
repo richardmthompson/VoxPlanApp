@@ -1,75 +1,88 @@
+### version tracker
+
+16/06:	1.0 - represents a todo item
+	1.1 - edit todo item
+	1.2 - show multiple todo items in a list
+	1.3 - top app bar
+28/06:  1.4 - move up, down hierarchy & vertically
+	1.5 - represent multi layer hierarchy of goals
+17/07:	1.6 - represent multi layer goals with breadcrumbs 
+28/07: 	2.1 - with schedule screen, bot nav bar, sample event.
+	2.2 - event table in db, create today events from edit screen
+07/08	2.3 - events creatable from goals on today's day scheduler
+13/08	2.4 - event icons on event selection
+28/08	2.5 - with focus screen and focus timer!
+18/09	2.6 - power bar, time banking
+	2.7 - completed tasks, Diamond awards for power bar achievements
+<todo>
+3/12	3.0 - daily quotas
+</todo>
+
+
+
 # functionality
 
+__version_1__
+
 * stores and represents recursive layers of goals and sub-goals
+
 * goals can be moved up and down:
 	- vertically within current list
 	- hierarchically across levels
+
 * breadcrumbs tracks current hierarchy
 
-# current plan
-
-# next up
-
-* what about representing existing data structures?? -> i.e. from python program, we do use infinitely recursive goal-nodes.
-
-
-# stages of implementation
-
-__mirror voxplan data structure__
-
-* goal_id, summary, details, + hierarchical structure for gui representation...
-# done
-
-
-__destination screens__
-
-* goal tree screen
-	- view different hierarchical levels
-# done
-	
-* goal add/edit details screen
-# done
-
-* daily planner screen
-
-* task focus screen 
-	-> prevent access to other screens
-
-* gamified success accruement screen
-
-
-__step 1__
-
-* base screen with 3-5 goals
-* sub-goals
-* add/edit goal screen
-# done
-
-__step 2__
-
-* represent sub-goals on main screen
 * save goals across quits
+
 * floating action button for adding goals
 
-__step 3__
+
+__version_2__
 
 * day scheduling screen
+
 * navigation bar
+
 * month and week view
 
-__step4__
+* focus mode with pomodoro
 
-* focus mode (?)
+* accruing time into time-bank
 
-__step 5__
+* showing accrued time in power bar
+
+* completing tasks accrues 15m time bank, completed tasks disappear on following day.
+
+* diamond display when daily time focus quota achieved!
+
+
+__version_3__
+
+
+
+<todo>
+
+__version_4__
 
 * load/retrieve goals to/from cloud storage
-* connection to desktop python
+
+* connection to desktop version of voxplan
+
+
+__version_5__
+
+* ai voice controlled assistant installation
+
 * voice recognition for goal entry
 
-__step 6__
+__version_6__
 
-* chat bot incorporated into adding goals
+* intelligent ai-driven process
+
+* voxplan can call on whatsapp and conduct a 'secretary convo', then subsequently update functioning of app accordingly.
+
+</todo>
+
 
 
 # application components
