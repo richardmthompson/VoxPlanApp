@@ -13,4 +13,9 @@ class VoxPlanApplication: Application() {
         super.onCreate()
         container = AppDataContainer(this)
     }
+
+    override fun onTerminate() {
+        super.onTerminate()
+        (container as? AppDataContainer)?.soundPlayer?.release()
+    }
 }

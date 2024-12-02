@@ -65,22 +65,6 @@ fun VoxPlanApp(
         }
     }
 
-
-    /*
-        navBackStackEntry?.let { entry ->
-
-            // debug loggin
-            val route = entry.destination.route
-            Log.d("Navigation", "VoxPlanApp (post-nav-update): Current route: $route")
-
-            val backStack = buildBackStackInfo(navController)
-            Log.d("Navigation", "VoxPlanApp (post-nav-update): Current backstack: ${backStack}")
-
-            // update selected index in viewModel
-        }
-
-     */
-
     // prevent bottom bar from showing if we're in focus mode.
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute?.contains("focus_mode", ignoreCase = true) != true

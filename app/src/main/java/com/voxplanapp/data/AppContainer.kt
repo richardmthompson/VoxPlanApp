@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.voxplanapp.shared.SoundPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,6 +15,7 @@ interface AppContainer {
     val todoRepository: TodoRepository
     val eventRepository: EventRepository
     val timeBankRepository: TimeBankRepository
+    val soundPlayer: SoundPlayer
 }
 
 class AppDataContainer(private val context: Context) : AppContainer {
@@ -25,7 +27,8 @@ class AppDataContainer(private val context: Context) : AppContainer {
                 .addMigrations(
                     AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4,
                     AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
-                    AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8
+                    AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
+                    AppDatabase.MIGRATION_8_9
                     )
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
@@ -63,4 +66,8 @@ class AppDataContainer(private val context: Context) : AppContainer {
     override val timeBankRepository: TimeBankRepository by lazy {
         TimeBankRepository(database.timeBankDao())
     }
+    override val soundPlayer: SoundPlayer by lazy {
+        SoundPlayer(context)
+    }
+
 }

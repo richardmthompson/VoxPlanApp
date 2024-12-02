@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -22,10 +23,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.Typography
@@ -35,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -42,9 +50,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.VectorProperty
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -56,6 +66,7 @@ import com.voxplanapp.ui.constants.FocusColorRest
 import com.voxplanapp.ui.constants.FocusColorRestText
 import com.voxplanapp.ui.constants.FocusColorWork
 import com.voxplanapp.ui.constants.FocusColorWorkText
+import com.voxplanapp.ui.constants.FocusIconSize
 import com.voxplanapp.ui.constants.LargeDp
 import com.voxplanapp.ui.constants.MediumDp
 import com.voxplanapp.ui.constants.SmallDp
@@ -119,8 +130,10 @@ fun FocusModeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = MediumDp)
-                            .border(2.dp, Color.Green, RoundedCornerShape(MediumDp))
+                            .border(2.dp, Color(0xFF2C742E), RoundedCornerShape(SmallDp))
+                            .background(Color(0xFF002702))
                             .padding(MediumDp)
+
                     ) {
                         Text(
                             text = "FOCUS MODE",
@@ -129,16 +142,11 @@ fun FocusModeScreen(
                         )
                     }
 
-                    Log.d("FocusModeScreen", "goalUiState: $goalUiState")
-                    Log.d("FocusModeScreen", "goal title: ${goalUiState?.goal?.title}")
-
                     // task headline
                     Text(
                         text = "\"${goalUiState?.goal?.title}\"",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineSmall,
                     )
-
-                    Spacer(modifier = Modifier.height(20.dp))
 
                     // event box indicating length of current event
                     EventBox(
@@ -148,74 +156,134 @@ fun FocusModeScreen(
                         modifier = modifier
                     )
 
-                    /*
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    PomodoroSettings(
-                        focusUiState = focusUiState,
-                        eventUiState = eventUiState,
-                        timerSettingsState = timerSettingsState,
-                        onSettingsChange = { /* todo */ },
-                        modifier = modifier
+                    Row (modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 0.dp)
+                    ) {
+                        Text(
+                            text = "Time Bank \nMode",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier.weight(1f)
                         )
+                        Switch(
+                            checked = focusUiState.isDiscreteMode,
+                            onCheckedChange = { viewModel.toggleFocusMode() },
+                            modifier = modifier.padding(horizontal = MediumDp)
+                        )
+                        Text(
+                            text = "Discrete Task \nMode",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Left,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(SmallDp))
 
-                     */
-
-                    Spacer(modifier = Modifier.height(20.dp))
-                    // timer headline
-                    Text(
-                        text = "Time Bank",
-                        style = MaterialTheme.typography.headlineMedium,
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .align(Alignment.CenterHorizontally)
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Timer clock & buttons
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(210.dp),
-                        horizontalArrangement = Arrangement.Center
+                            .border(2.dp, Color(0xFF2C742E), RoundedCornerShape(MediumDp))
+                            .background(Color(0xFF002702))
+                            .padding(MediumDp)
                     ) {
-                        //Timer display
-                        Box(modifier = Modifier
-                            .weight(0.6f)
-                            .padding(start = LargeDp)
-                        ) {
-                            TimerDisplay(focusUiState)
-                        }
-                        Column(modifier = Modifier
-                            .weight(0.4f)
-                            .fillMaxHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-
-                        ) {
-                            TimerControls(
-                                focusUiState = focusUiState,
-                                onToggleTimer = { viewModel.toggleTimer() },
-                                onResetTimer = { viewModel.resetTimer() },
-                                onBankTime = { viewModel.bankTimer() },
-                                modifier = modifier
+                        Column {
+                            // Timer headline
+                            Text(
+                                text = if (focusUiState.isDiscreteMode) "Discrete Task Mode"
+                                        else if (timerSettingsState.usePomodoro) "Pomodoro Mode"
+                                        else "Timed Task Mode",
+                                style = MaterialTheme.typography.headlineMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
+                            Spacer(modifier = Modifier.height(MediumDp))
+
+                            // Timer clock & buttons
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                //Timer display
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.6f)
+                                        .padding(start = LargeDp)
+                                ) {
+                                    if (focusUiState.isDiscreteMode) {
+                                        DiscreteTaskClock(
+                                            state = focusUiState.discreteTaskState,
+                                            level = focusUiState.currentTaskLevel,
+                                            progress = focusUiState.clockProgress,
+                                            onPress = viewModel::startDiscreteTask,
+                                            onRelease = viewModel::stopDiscreteTask
+                                        )
+                                    } else {
+                                        TimerDisplay(
+                                            focusUiState,
+                                            timerSettingsState
+                                        )
+                                    }
+
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .weight(0.4f)
+                                        .fillMaxHeight(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+
+                                    ) {
+                                    if (focusUiState.isDiscreteMode) {
+                                        if (focusUiState.discreteTaskState != DiscreteTaskState.IDLE) {
+                                            Text(
+                                                text = focusUiState.currentTaskLevel.description,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier.padding(top = LargeDp)
+                                            )
+                                        }
+                                    } else {
+                                        TimerControls(
+                                            focusUiState = focusUiState,
+                                            onToggleTimer = { viewModel.toggleTimer() },
+                                            onResetTimer = { viewModel.resetTimer() },
+                                            onBankTime = { viewModel.bankTimer() },
+                                            modifier = modifier
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // clock face minutes boxes to change total clockface minutes
-                    clockFaceMinutesButtons(
-                        currentMinutes = focusUiState.clockFaceMins,
-                        onClockFaceMinutesChanged = { newMinutes ->
-                            viewModel.updateClockFaceMinutes(newMinutes)
+                    Row {
+                        // Pomodoro control
+                        PomodoroControls(
+                            timerSettingsState = timerSettingsState,
+                            onIncrementRatio = { viewModel.incrementPomodoroRatio() },
+                            onDecrementRatio = { viewModel.decrementPomodorRatio() })
+
+                        // Timer capacity buttons
+                        if (!focusUiState.isDiscreteMode) {
+                            clockFaceMinutesButtons(
+                                currentMinutes = focusUiState.clockFaceMins,
+                                onClockFaceMinutesChanged = { newMinutes ->
+                                    viewModel.updateClockFaceMinutes(newMinutes)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
                         }
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    MedalDisplay(medals = focusUiState.medals)
+                    }
 
                     Spacer(modifier = Modifier.weight(1f))
+
+                    MedalDisplay(
+                        medals = focusUiState.medals,
+                        modifier = Modifier.height(100.dp)
+                    )
 
                     // Bottom buttons
                     Row(
@@ -231,11 +299,55 @@ fun FocusModeScreen(
 
                         RetroButton(onClick = onNavigateUp,
                             buttonText = "Quit")
-                    }
-                }
-            }
+                    } // bottom buttons row
+                } // focus mode screen vertical layout column
+            } // theme composable
         } // main block (else)
     } // when
+}
+
+@Composable
+fun DiscreteTaskClock(
+    state: DiscreteTaskState,
+    level: DiscreteTaskLevel,
+    progress: Float,
+    onPress: () -> Unit,
+    onRelease: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(180.dp)
+            .clip(CircleShape)
+            .background(level.color)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        onPress()
+                        tryAwaitRelease()
+                        onRelease()
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            progress = progress,
+            modifier = Modifier.fillMaxSize(),
+            color = Color.Black,
+            strokeWidth = 8.dp
+            )
+
+        Text(
+            text = when (state) {
+                DiscreteTaskState.IDLE -> "PRESS ME"
+                DiscreteTaskState.COMPLETING -> level.text
+                DiscreteTaskState.COMPLETED -> "COMPLETED"
+            },
+            style = MaterialTheme.typography.headlineMedium,
+            color = Color.Black
+
+        )
+    }
 }
 
 @Composable
@@ -243,42 +355,67 @@ fun clockFaceMinutesButtons(
     currentMinutes: Int,
     onClockFaceMinutesChanged: (Int) -> Unit
 ) {
-    val buttonValues = listOf(3, 5, 10, 15, 30, 45)
+    val buttonValues = listOf(1, 3, 5, 10, 15, 30, 45, 60)
 
-    Text (
-        text = "Timer Capacity:",
+    /*
+    Text(
+        text = "Timed Goals:",
         style = MaterialTheme.typography.bodyLarge,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(bottom = 8.dp)
     )
+     */
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
-        buttonValues.forEach { minutes ->
-            val borderColor = if (currentMinutes == minutes) Color(0xFF007FFF)
-            else Color(0xFF20409A)
-
-            val containerColor = if (currentMinutes == minutes) Color(0xFF20409A)
-                else MaterialTheme.colorScheme.background
-
-            Button(
-                onClick = { onClockFaceMinutesChanged(minutes) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = containerColor
-                ),
-                border = BorderStroke(4.dp, borderColor),
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier
-                    .padding(horizontal= 0.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp)
-            ) {
-                Text(text = minutes.toString(), modifier = Modifier.padding(0.dp))
+        // First row of buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly) {
+            buttonValues.take(4).forEach { minutes ->
+                TimedGoalButton(minutes, currentMinutes, onClockFaceMinutesChanged)
             }
         }
+
+        // Second row of buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            buttonValues.takeLast(4).forEach { minutes ->
+                TimedGoalButton(minutes, currentMinutes, onClockFaceMinutesChanged)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimedGoalButton(
+    minutes: Int,
+    currentMinutes: Int,
+    onClockFaceMinutesChanged: (Int) -> Unit
+) {
+    val borderColor = if (currentMinutes == minutes) Color(0xFF007FFF) else Color(0xFF20409A)
+    val containerColor = if (currentMinutes == minutes) Color(0xFF20409A) else MaterialTheme.colorScheme.background
+
+    Button(
+        onClick = { onClockFaceMinutesChanged(minutes) },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor
+        ),
+        border = BorderStroke(4.dp, borderColor),
+        shape = RoundedCornerShape(4.dp),
+        modifier = Modifier.padding(horizontal = 2.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = minutes.toString(),
+            modifier = Modifier.padding(0.dp)
+        )
     }
 }
 
@@ -290,7 +427,7 @@ fun EventBox(
     modifier: Modifier = Modifier
 ) {
 
-    Log.d("FocusModeScreen","printing eventBox. start time: ${focusUiState.startTime}, end time: ${focusUiState.endTime}")
+    //Log.d("FocusModeScreen","printing eventBox. start time: ${focusUiState.startTime}, end time: ${focusUiState.endTime}")
     Column (modifier = modifier.fillMaxWidth()) {
         Text(
             text = focusUiState.startTime?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
@@ -323,82 +460,86 @@ fun EventBox(
 }
 
 @Composable
-fun PomodoroSettings(
-    focusUiState: FocusUiState,
-    eventUiState: Event?,
+fun PomodoroControls(
     timerSettingsState: TimerSettingsState,
-    onSettingsChange: (TimerSettingsState) -> Unit,
+    onIncrementRatio: () -> Unit,
+    onDecrementRatio: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Log.d("FocusModeScreen","")
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
 
-    Column (horizontalAlignment = Alignment.Start){
-        Text("Work / Rest Intervals for Focus Timer:",
-            style = MaterialTheme.typography.bodyMedium)
-        Text("Total: ${formatDuration(focusUiState.startTime, eventUiState?.endTime)}",
-            style = MaterialTheme.typography.bodyMedium,
+        IconButton(onClick = onIncrementRatio) {
+            Icon(
+                Icons.Default.KeyboardArrowUp,
+                tint = EventBoxColor,
+                contentDescription = "Increase ratio",
+                modifier = Modifier.size(FocusIconSize)
+            )
+        }
+        Text(
+            if (timerSettingsState.usePomodoro) {
+                "${timerSettingsState.workDuration}:${timerSettingsState.restDuration}"
+            } else {
+                "\u221E:0"
+            },
+            style = MaterialTheme.typography.bodyLarge
         )
-        Row {
-            Text("Work period:",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            TextField(
-                value = timerSettingsState.workDuration.toString(),
-                onValueChange = {
-                    onSettingsChange(
-                        timerSettingsState.copy(workDuration = it.toIntOrNull() ?: 0)
-                    )
-                },
-                modifier = modifier.width(50.dp)
-            )
-            Text("mins",
-                style = MaterialTheme.typography.bodyMedium,
+        IconButton(onClick = onDecrementRatio) {
+            Icon(
+                Icons.Default.KeyboardArrowDown,
+                tint = EventBoxColor,
+                contentDescription = "Decrease ratio",
+                modifier = Modifier.size(FocusIconSize)
             )
         }
-        Row {
-            Text("Rest period:",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            TextField(
-                value = timerSettingsState.restDuration.toString(),
-                onValueChange = {
-                    onSettingsChange(
-                        timerSettingsState.copy(restDuration = it.toIntOrNull() ?: 0)
-                    )
-                },
-                modifier = modifier.width(50.dp)
-            )
-            Text("mins",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        Row {
-            Text("Blocks",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            TextField(
-                value = timerSettingsState.numWorkBlocks?.toString() ?: "",
-                onValueChange = {
-                    onSettingsChange(timerSettingsState.copy(numWorkBlocks = it.toIntOrNull()))
-                },
-                modifier = modifier.width(50.dp)
-            )
-        }
+
     }
 }
 
-
 @Composable
-fun TimerDisplay(focusUiState: FocusUiState, modifier: Modifier = Modifier) {
+fun TimerDisplay(
+    focusUiState: FocusUiState,
+    timerSettingsState: TimerSettingsState,
+    modifier: Modifier = Modifier) {
     Box(
         modifier = Modifier
-            .size(200.dp)
+            .size(180.dp)
             .drawBehind {
-                val strokeWidth = 4.dp.toPx()
+                val strokeWidth = 6.dp.toPx()
                 val size = Size(size.width - strokeWidth, size.height - strokeWidth)
 
+                if (timerSettingsState.usePomodoro) {
+                    val totalMinutes = focusUiState.clockFaceMins
+                    val cycleLength = timerSettingsState.workDuration + timerSettingsState.restDuration
+                    val workMinutes = (totalMinutes * timerSettingsState.workDuration) / cycleLength.toFloat()
+                    val workAngle = 360f * (workMinutes / totalMinutes.toFloat())
+                    val restAngle = 360f - workAngle
+
+                    drawArc(
+                        color = Color(0xFF1A245C),
+                        startAngle = -90f,
+                        sweepAngle = workAngle,
+                        useCenter = true,
+                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                        size = size,
+                        style = Fill
+                    )
+
+                    // Draw rest period arc
+                    drawArc(
+                        color = Color(0xFF3F51B5),
+                        startAngle = -90f + workAngle,
+                        sweepAngle = restAngle,
+                        useCenter = true,
+                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                        size = size,
+                        style = Fill
+                    )
+                }
+
                 drawArc(
-                    color = Color(0xFF008B00), // dark green
+                    color = if (focusUiState.isRestPeriod) Color(0xFF2196F3)
+                            else Color(0xFF008B00),
                     startAngle = -90f,
                     sweepAngle = 360f * focusUiState.clockProgress,
                     useCenter = true,
@@ -407,18 +548,34 @@ fun TimerDisplay(focusUiState: FocusUiState, modifier: Modifier = Modifier) {
                     style = Fill
                 )
 
+                // draw outline of clock
                 drawCircle(
-                    color = Color.Gray,
+                    color = Color(0xFF000000),
+                    style = Stroke(width = strokeWidth + SmallDp.toPx())
+                )
+                drawCircle(
+                    color = Color(0xFFFFC107),
                     style = Stroke(width = strokeWidth)
                 )
-            }
+            },
+        contentAlignment = Alignment.Center
     ) {
         // display central timer
-        Text(
-            text = formatTime(focusUiState.currentTime),
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.align(Alignment.Center)
-        )
+        Column (horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center) {
+            Text(
+                text = formatTime(focusUiState.currentTime),
+                style = MaterialTheme.typography.headlineLarge,
+                textAlign = TextAlign.Center
+            )
+            if (timerSettingsState.usePomodoro) {
+                Text(
+                    text = if (focusUiState.isRestPeriod) "REST" else "WORK",
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
         // display quarter time markers
         val quarterTimes: List<Double> = listOf(1.0, 0.25, 0.5, 0.75)
 
@@ -479,7 +636,7 @@ fun TimerControls(
         )
         RetroButton(
             onClick = onBankTime,
-            buttonText = "Bank Minutes"
+            buttonText = "Bank Timer"
         )
     }
 }
@@ -530,20 +687,36 @@ fun MedalDisplay(medals: List<Medal>, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.Center
     ) {
         medals.forEach { medal ->
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.Yellow, CircleShape)
-                    .border(2.dp, Color(0xFFB38106), CircleShape),
-            ) {
-                Text(
-                    text = "${medal.minutes}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Black
-                )
-            }
+            MedalItem(medal)
             Spacer(modifier = Modifier.width(MediumDp))
         }
+    }
+}
+
+@Composable
+fun MedalItem(medal: Medal) {
+    val (backgroundColor, borderColor, textColor) = when (medal.type) {
+        MedalType.MINUTES -> Triple(Color(0xFFFFD700), Color(0xFFFF9800), Color.Black)
+        MedalType.HOURS -> Triple(Color(0xFF4CAF50), Color(0xFF2E7D32), Color.White)
+    }
+
+    Box(
+        modifier = Modifier
+            .size(60.dp)
+            .clip(if (medal.type == MedalType.HOURS) RoundedCornerShape(8.dp) else CircleShape)
+            .background(backgroundColor)
+            .border(
+                width = 2.dp,
+                color = borderColor,
+                shape = if (medal.type == MedalType.HOURS) RoundedCornerShape(8.dp) else CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "${medal.value}${if (medal.type == MedalType.HOURS) "h" else "m"}",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = textColor
+        )
     }
 }
 
@@ -570,6 +743,7 @@ fun FocusModeTheme(
     val typography = FocusModeTypography.copy(
         headlineLarge = FocusModeTypography.headlineLarge.copy(color = colors.onBackground),
         headlineMedium = FocusModeTypography.headlineMedium.copy(color = colors.onBackground),
+        headlineSmall = FocusModeTypography.headlineMedium.copy(color = colors.onBackground),
         bodyLarge = FocusModeTypography.bodyLarge.copy(color = colors.onBackground),
         bodyMedium = FocusModeTypography.bodyMedium.copy(color = colors.onBackground),
         bodySmall = FocusModeTypography.bodySmall.copy(color = colors.onBackground),
@@ -590,6 +764,9 @@ val FocusModeTypography = Typography(
     ),
     headlineMedium = TextStyle(
         fontSize = 22.sp,
+    ),
+    headlineSmall = TextStyle(
+        fontSize = 18.sp,
     ),
     bodyLarge = TextStyle(
         fontSize = 16.sp,
@@ -613,6 +790,16 @@ fun formatTime(timeInMillis: Long): String {
     val minutes = (timeInMillis % (1000 * 60 * 60)) / (1000 * 60)
     val seconds = (timeInMillis % (1000 * 60)) / 1000
     return String.format("%02d:%02d", minutes, seconds)
+}
+
+fun convertMillistoMins(timeinMillis: Long): Int {
+    val minutes = (timeinMillis % (1000 * 60 * 60)) / (1000 * 60)
+    return minutes.toInt()
+}
+
+fun convertMinstoMillis(timeinMins: Int): Long {
+    val millis = timeinMins * 60000L
+    return millis
 }
 
 fun formatDuration(start: LocalTime?, end: LocalTime?): String {

@@ -61,7 +61,7 @@ fun VoxPlanNavHost(
             GoalEditScreen(
                 onNavigateUp = { navController.navigateUp() },
                 onNavigateToScheduler = { date ->
-                    navController.navigate("${VoxPlanScreen.DaySchedule.createRouteWithDate(date)}") {
+                        navController.navigate("${VoxPlanScreen.DaySchedule.createRouteWithDate(date)}") {
                         popUpTo(navController.graph.startDestinationId)
                         launchSingleTop = true
                     }
@@ -116,5 +116,28 @@ fun VoxPlanNavHost(
                 onNavigateUp = { navController.navigateUp() }
             )
         }
+
+        /* quick schedule screen
+
+        composable(
+            route = VoxPlanScreen.QuickSchedule.routeWithArgs,
+            arguments = listOf(navArgument(VoxPlanScreen.QuickSchedule.goalIdArg) { type = NavType.IntType })
+        ) { backStackEntry ->
+            val goalId = backStackEntry.arguments?.getInt(VoxPlanScreen.QuickSchedule.goalIdArg)
+            requireNotNull(goalId) { "goalId parameter wasn't found. Please make sure it's set!" }
+            QuickScheduleScreen(
+                goalId = goalId,
+                onSchedule = { date ->
+                    navController.navigate("${VoxPlanScreen.DaySchedule.createRouteWithDate(date)}") {
+                        popUpTo(navController.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                },
+                onDismiss = { navController.navigateUp() }
+            )
+        }
+
+         */
+
     }
 }

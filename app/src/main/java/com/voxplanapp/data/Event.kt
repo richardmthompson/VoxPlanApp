@@ -16,11 +16,11 @@ data class Event(
     val endTime: LocalTime,
     val startDate: LocalDate,
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
-    val recurrenceInterval: Int?,
-    val recurrenceEndDate: LocalDate?,
+    val recurrenceInterval: Int? = 0,
+    val recurrenceEndDate: LocalDate? = null,
 
     // todo: Add color to event
-    val color: Int?
+    val color: Int? = null
 )
 
 enum class RecurrenceType {

@@ -32,20 +32,3 @@ interface EventDao {
     suspend fun deleteEvent(event: Event)
 
 }
-
-
-class Converters {
-    // For LocalTime
-    @TypeConverter
-    fun fromTimeString(value: String?): LocalTime? = value?.let { LocalTime.parse(it) }
-
-    @TypeConverter
-    fun timeToString(time: LocalTime?): String? = time?.toString()
-
-    // For LocalDate
-    @TypeConverter
-    fun fromDateLong(value: Long?): LocalDate? = value?.let { LocalDate.ofEpochDay(it) }
-
-    @TypeConverter
-    fun dateToLong(date: LocalDate?): Long? = date?.toEpochDay()
-}

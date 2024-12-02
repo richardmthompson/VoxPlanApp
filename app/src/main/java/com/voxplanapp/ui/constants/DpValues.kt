@@ -9,6 +9,7 @@ val MediumDp: Dp = 8.dp
 val LargeDp: Dp = 16.dp
 
 val EventIconSize: Dp = 24.dp
+val FocusIconSize: Dp = 24.dp
 
 val TodoItemHeight: Dp = 48.dp
 val TodoItemIconSize: Dp = 24.dp

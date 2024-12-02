@@ -34,4 +34,10 @@ sealed class VoxPlanScreen(val route: String) {
         fun createRouteFromGoal(goalId: Int): String = "$route/$goalId"
         fun createRouteFromEvent(eventId: Int): String = "$route?$eventIdArg=$eventId"
     }
+
+    object QuickSchedule : VoxPlanScreen("quick_schedule") {
+        const val goalIdArg = "goalId"
+        val routeWithArgs = "$route/{$goalIdArg}"
+    }
+
 }

@@ -71,7 +71,7 @@ class GoalEditViewModel(
         val currentGoal = goalUiState.goal?.goal ?: return
         val updatedTodoItem = when (attribute) {
             "title" -> currentGoal.copy(title = value as String)
-            "isDone" -> currentGoal.copy(isDone = value as Boolean)
+            "isDone" -> currentGoal.copy(completedDate = value as LocalDate)
             "notes" -> currentGoal.copy(notes = value as String?)
             "preferredTime" -> currentGoal.copy(preferredTime = value as LocalTime?)
             "estDurationMins" -> currentGoal.copy(estDurationMins = value as Int?)

@@ -186,10 +186,47 @@ __sequencer__
 * gamification:
 	+ building up of points per sub-goal and goal (over the week)
 	
+# Detailed Explanation of Key Features
+
+
+<FOCUS MODE SINGLE>   - WHEN A GOAL WITH NO SUB-GOALS IS SCHEDULED.
+
+  - FOCUS MODE -
+  start		end
+  7am		8am
+
+0700 ___________________
+     |  PROGRAMMING    |-
+     |_________________|+
+1000
+
+Total:	3 hours 0 mins
+Split:	Work: 25  mins		// Timer will say GO for 25 mins,
+	Rest: 5   mins		// REST for 5 mins, e.g.
+Blocks:	6 work blocks
+
+				// Once we enter 'Go' mode, the icons
+       30			// and + / - signs disappear, and 
+   ____|____			// the clock starts counting.
+  /    |    \	   X   QUIT
+25     |     5			Blocks accrued: 
+ |    GO!    |	   >>   FF	3  ***	(90 mins)
+20          10
+  \         /	   ||  PAUSE
+   ----|----
+       15
+
+* tasks are either TIME-BASED tasks (i.e. the task is to spend a certain amount of time doing them) or ACTION-BASED tasks (i.e. the task is to complete an action).
+
+* for an 'ongoing' task, that involves spending time on the goal without any defined sub-goal, this may be 'practice,' or 'playing', 'dancing,' whatever, and it has no end-point - the goal is to simply do the activity, wwhatever it is, and accrue time points.
+
+-> in this instance, in focus mode, the time is accumulating, and when done, the time is accrued in the time-vault for this activity.
+
 
 # summary 21 jun 2024
 
-Application Overview:
+## Developer overview
+
 The application is a goal management system built using Kotlin and Jetpack Compose for Android. It allows users to create, manage, and organize hierarchical goals and subgoals.
 
 Architecture:

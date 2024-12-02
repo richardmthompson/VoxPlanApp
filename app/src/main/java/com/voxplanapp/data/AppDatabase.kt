@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @TypeConverters(Converters::class)
-@Database(entities = [TodoItem::class, Event::class, TimeBank::class], version = 8)
+@Database(entities = [TodoItem::class, Event::class, TimeBank::class], version = 9)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun todoDao(): TodoDao
     abstract fun eventDao(): EventDao
@@ -79,6 +79,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add the new column
+                database.execSQL("ALTER TABLE TodoItem ADD COLUMN completedDate INTEGER")
+            }
+        }
 
     }
 }

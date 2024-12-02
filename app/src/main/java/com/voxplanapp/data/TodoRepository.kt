@@ -2,6 +2,7 @@ package com.voxplanapp.data
 
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 class TodoRepository(private val todoDao: TodoDao) {
 
@@ -21,6 +22,16 @@ class TodoRepository(private val todoDao: TodoDao) {
     suspend fun insert(todo: TodoItem) {
         todoDao.insert(todo)
         Log.d("TodoRepository", "Inserting todo: $todo")
+    }
+
+    // this is a toggle function - if the item is completed, it becomes uncompleted & vice versa.
+    suspend fun completeItem(todoItem: TodoItem) {
+        val updatedItem = if (todoItem.completedDate == null) {
+            todoItem.copy(completedDate = LocalDate.now())
+        } else {
+            todoItem.copy(completedDate = null)
+        }
+        todoDao.update(updatedItem)
     }
 
     suspend fun updateItemsInTransaction(items: List<TodoItem>) {

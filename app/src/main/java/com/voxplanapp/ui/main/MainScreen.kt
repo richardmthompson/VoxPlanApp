@@ -38,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -45,11 +46,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.voxplanapp.AppViewModelProvider
 import com.voxplanapp.R
+import com.voxplanapp.data.FULLBAR_MINS
 import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.model.ActionMode
 import com.voxplanapp.navigation.BottomNavigationBar
@@ -139,6 +142,7 @@ fun MainScreen(
                 onSubGoalsClick = mainViewModel::navigateToSubGoals,
                 onEnterFocusMode = onEnterFocusMode,
                 onItemDelete = mainViewModel::deleteItem,
+                onItemComplete = mainViewModel::completeItem,
                 onItemReorder = mainViewModel::reorderItem,
                 overlappingElementsHeight = OverlappingHeight,
                 // change below to moveActive = vUp, vDown, hUp, hDown
@@ -156,9 +160,24 @@ fun MainScreen(
 
 @Composable
 fun PowerBar(totalMinutes: Int, modifier: Modifier = Modifier) {
-    val hours = totalMinutes / 60
     val remainingMinutes = totalMinutes % 60
-    val bars = (0..3).map { minOf(60, maxOf(0, totalMinutes - it * 60)) }
+    val diamondThreshold = FULLBAR_MINS * 4
+    val diamonds = totalMinutes / diamondThreshold      // calculate number of diamonds
+    val hasDiamond = diamonds > 0
+    val showBars = totalMinutes >= diamondThreshold * (diamonds + 0.25)     // show bars after 1/4 of next diamond worth
+
+    // if no diamond, just show 4 bars.
+    // if diamond, show diamond
+
+    // produces a map of which bars have how many mins on them
+    val bars = if (showBars) {
+        val remainingTime = totalMinutes - (diamondThreshold * diamonds)        // removes diamond amounts from mins
+        (0..3).map { minOf(FULLBAR_MINS, maxOf(0, remainingTime - it * FULLBAR_MINS)) }
+    } else if (!hasDiamond) {
+        (0..3).map { minOf(FULLBAR_MINS, maxOf(0, totalMinutes - it * FULLBAR_MINS)) }
+    } else {
+        emptyList()
+    }
 
     Row(
         modifier = modifier
@@ -167,35 +186,44 @@ fun PowerBar(totalMinutes: Int, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "POWER:",
-            style = TextStyle(
-                color = Color(0xFFFF5722),
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                fontFamily = FontFamily.Monospace
-            ),
-            modifier = Modifier.padding(end = 16.dp)
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            bars.forEach { fillAmount ->
-                Box(
-                    modifier = Modifier
-                        .width(20.dp)
-                        .height(60.dp)
-                        .border(2.dp, Color(0xFF3F51B5))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .fillMaxHeight(fillAmount / 60f)
-                            .background(Color(0xFFFF0000))
+        Column(modifier = Modifier.width(120.dp)) {
+            Text(
+                text = "POWER:",
+                style = TextStyle(
+                    color = Color(0xFFFF5722),
+                    fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                    fontFamily = FontFamily.Monospace
+                ),
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            // show a small diamond and a x 1 if there is a diamond
+            // if minutes > bars x 5, show diamond under power label and show bars in middle
+            if (showBars && hasDiamond) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row (horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Diamond(size = 26.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "x ${diamonds}",
+                        style = TextStyle(color = Color(0xFF4CAF50), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     )
+                }
+            }
+        }
+
+        if (hasDiamond && !showBars) {
+            // show only diamond
+            Row(horizontalArrangement = Arrangement.Center) {
+                Diamond(size = 40.dp)
+            }
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                bars.forEach { fillAmount ->
+                    OneBar(fillAmount)
                 }
             }
         }
@@ -207,7 +235,7 @@ fun PowerBar(totalMinutes: Int, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(60.dp)
                 .background(Color(0xFFFFD700), CircleShape)
-                .border(2.dp, Color(0xFFFF5722), CircleShape),
+                .border(2.dp, Color(0xFFFF9800), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -220,6 +248,46 @@ fun PowerBar(totalMinutes: Int, modifier: Modifier = Modifier) {
                 )
             )
         }
+    }
+}
+
+@Composable
+fun Diamond(size: Dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .rotate(45f)
+            .background(Color(0xFF9C27B0))
+            .border(2.dp, Color(0xFFBA68C8))
+    )
+
+}
+
+@Composable
+fun OneBar(fillAmount: Int) {
+    Box(
+        modifier = Modifier
+            .width(20.dp)
+            .height(60.dp)
+            .border(
+                2.dp,
+                if (fillAmount == 60) {
+                    Color(0xFF1BA821)
+                } else {
+                    Color(0xFF3F51B5)
+                }
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(fillAmount / 60f)
+                .background(
+                    if (fillAmount == 60) Color(0xFF13D31B)
+                    else Color(0xFFFF0000)
+                )
+        )
     }
 }
 

@@ -2,6 +2,7 @@ package com.voxplanapp.data
 
 import androidx.room.ColumnInfo
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.PrimaryKey
@@ -33,11 +34,18 @@ interface TimeBankDao {
 
     @Query("SELECT SUM(duration) FROM TimeBank WHERE date = :date")
     fun getTotalTimeForDate(date: LocalDate): Flow<Int?>
+
+    @Query("DELETE FROM TimeBank WHERE goal_id =:goalId AND duration = :bonusAmount")
+    suspend fun deleteCompletionBonus(goalId: Int, bonusAmount: Int)
 }
 
 class TimeBankRepository(private val timeBankDao: TimeBankDao) {
     suspend fun addTimeBankEntry(goalId: Int, duration: Int) {
         timeBankDao.insert(TimeBank(goalId = goalId, date = LocalDate.now(), duration = duration))
+    }
+
+    suspend fun deleteCompletionBonus(goalId: Int, bonusAmount: Int) {
+        timeBankDao.deleteCompletionBonus(goalId, bonusAmount)
     }
 
     fun getEntriesForGoal(goal: Int) = timeBankDao.getEntriesForGoal(goal)
@@ -47,6 +55,5 @@ class TimeBankRepository(private val timeBankDao: TimeBankDao) {
     fun getTotalTimeForGoal(goalId: Int) = timeBankDao.getTotalTimeForGoal(goalId)
 
     fun getTotalTimeForDate(date: LocalDate) = timeBankDao.getTotalTimeForDate(date)
-
 
 }

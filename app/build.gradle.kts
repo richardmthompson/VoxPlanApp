@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
-
 }
 
 android {
@@ -77,7 +76,12 @@ dependencies {
 
     // icons
     implementation("androidx.compose.material:material-icons-extended:1.6.2")
-    
+
+    // media player exoplayer
+    val media3_version = "1.1.1"
+    implementation("androidx.media3:media3-exoplayer:$media3_version")
+    implementation("androidx.media3:media3-exoplayer-dash:$media3_version")
+    implementation("androidx.media3:media3-ui:$media3_version")
 }
 
 kapt {

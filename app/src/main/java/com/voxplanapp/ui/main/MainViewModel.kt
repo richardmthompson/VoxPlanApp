@@ -6,13 +6,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.voxplanapp.R
 import com.voxplanapp.data.EventRepository
+import com.voxplanapp.data.FULLBAR_MINS
 import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.data.TimeBankRepository
 import com.voxplanapp.data.TodoItem
 import com.voxplanapp.data.TodoRepository
+import com.voxplanapp.data.pointsForItemCompletion
 import com.voxplanapp.model.ActionMode
 import com.voxplanapp.shared.SharedViewModel
+import com.voxplanapp.shared.SoundPlayer
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -31,9 +35,12 @@ class MainViewModel (
     private val repository: TodoRepository,
     private val eventRepository: EventRepository,
     private val timeBankRepository: TimeBankRepository,
+    private val soundPlayer: SoundPlayer,
     private val ioDispatcher: CoroutineDispatcher,
     private val sharedViewModel: SharedViewModel
 ) : ViewModel() {
+
+    private var hadDiamond = false
 
     // transform list of Todos from repository into an (ordered) mainUiState for the UI
     // and update this viewModel with breadcrumbs from shared viewModel
@@ -55,7 +62,18 @@ class MainViewModel (
 
     // set up daily power bar.  this will collect total time accrued in time bank in minutes.
     val todayTotalTime: StateFlow<Int> = timeBankRepository.getTotalTimeForDate(LocalDate.now())
+        // report 0 if we're not getting any report
         .map { it ?: 0 }
+
+        .onEach { minutes ->
+            val hasDiamond = minutes >= FULLBAR_MINS * 4
+            if (hasDiamond && !hadDiamond) {
+                soundPlayer.playSound(R.raw.power_up)
+                hadDiamond = true
+            }
+        }
+
+        // makes it a hot state flow, providing a real-time report from the time bank.
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -391,10 +409,42 @@ class MainViewModel (
         }
     }
 
-    fun toggleTodo(todoItem: TodoItem) =
-        viewModelScope.launch(ioDispatcher) { repository.insert(todoItem.copy(isDone = !todoItem.isDone)) }
+    fun completeItem(goal: TodoItem) {
+
+        Log.d("Mainscreen","Triggered complete item checkbox.  Goal: ${goal.title}.  Comp_date: ${goal.completedDate} (pre-click)")
+
+        if (goal.completedDate != null) {
+            Log.d("Mainscreen", "About to Un-complete goal")
+
+            // find completed time-bank entry for goal and delete it
+            viewModelScope.launch(ioDispatcher) {
+                // run toggle function to un-set completed date of todoitem
+                repository.completeItem(goal)
+                // remove time entry from when goal was marked complete.
+                timeBankRepository.deleteCompletionBonus(goal.id, pointsForItemCompletion)
+            }
+
+        }
+        else {
+            Log.d("Mainscreen", "About to set completed date of goal to TODAY.")
+            viewModelScope.launch(ioDispatcher) {
+                // run toggle function to set completed date of todoitem
+                repository.completeItem(goal)
+
+                // accrue time points here.
+                timeBankRepository.addTimeBankEntry(
+                    goalId = goal.id,
+                    duration = pointsForItemCompletion
+                )
+            }
+
+            soundPlayer.playSound(R.raw.chaching)
+
+        }
+    }
 
     fun deleteItem(goal: GoalWithSubGoals) {
+        Log.d("mainscreen", "accessed deleteItem function in mainviewModel: \"${goal.goal.title}\"")
         val parent = goal.goal
         viewModelScope.launch(ioDispatcher) {
             repository.deleteItemAndDescendents(parent)

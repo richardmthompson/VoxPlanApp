@@ -16,6 +16,7 @@ import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.data.TodoItem
 import com.voxplanapp.model.ActionMode
 import com.voxplanapp.ui.constants.MediumDp
+import java.time.LocalDate
 
 @Composable
 fun GoalListContainer(
@@ -26,6 +27,7 @@ fun GoalListContainer(
     onSubGoalsClick: (GoalWithSubGoals) -> Unit = {},
     onEnterFocusMode: (Int) -> Unit,
     onItemDelete: (GoalWithSubGoals) -> Unit = {},
+    onItemComplete: (TodoItem) -> Unit,
     onItemReorder: (GoalWithSubGoals) -> Unit,
     actionMode: ActionMode,
     overlappingElementsHeight: Dp = 0.dp,
@@ -37,19 +39,26 @@ fun GoalListContainer(
         verticalArrangement = Arrangement.spacedBy(MediumDp)
     ) {
         items(goalList, key = { goalWithSubGoal -> goalWithSubGoal.goal.id }) { goalWithSubGoals ->
-            GoalItem(
-                goal = goalWithSubGoals,
-                // the item click is a callback to the Edit screen, installed from NavHost
-                onItemClick = onItemClick,
-                saveExpandedSetting = saveExpandedSetting,
-                onSubGoalsClick = onSubGoalsClick,
-                onItemDelete = onItemDelete,
-                onItemReorder = onItemReorder,
-                onEnterFocusMode = onEnterFocusMode,
-                actionMode = actionMode
-            )
+
+            if ((goalWithSubGoals.goal.completedDate != null && goalWithSubGoals.goal.completedDate == LocalDate.now()) || (goalWithSubGoals.goal.completedDate == null)) {
+
+                GoalItem(
+                    goal = goalWithSubGoals,
+                    // the item click is a callback to the Edit screen, installed from NavHost
+                    onItemClick = onItemClick,
+                    saveExpandedSetting = saveExpandedSetting,
+                    onSubGoalsClick = onSubGoalsClick,
+                    onItemDelete = onItemDelete,
+                    onItemComplete = onItemComplete,
+                    onItemReorder = onItemReorder,
+                    onEnterFocusMode = onEnterFocusMode,
+                    actionMode = actionMode
+                )
+            }
         }
+
         item { Spacer(modifier = Modifier.height(overlappingElementsHeight)) }
+
     }
 }
 /*

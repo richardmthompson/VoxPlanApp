@@ -345,6 +345,7 @@ fun GoalInputForm(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            /*
             Checkbox(
                 checked = goal.isDone,
                 onCheckedChange = { onValueChange("isDone", it) },
@@ -354,8 +355,9 @@ fun GoalInputForm(
                 text = stringResource(id = R.string.is_goal_done),
                 modifier = Modifier.padding(start=8.dp)
             )
-        }
 
+             */
+        }
     }
 }
 
