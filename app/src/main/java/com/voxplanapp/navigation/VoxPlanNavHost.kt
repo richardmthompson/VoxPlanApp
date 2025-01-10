@@ -15,6 +15,7 @@ import androidx.navigation.navArgument
 import com.voxplanapp.ui.calendar.DaySchedule
 import com.voxplanapp.ui.focusmode.FocusModeScreen
 import com.voxplanapp.ui.goals.GoalEditScreen
+import com.voxplanapp.ui.goals.ProgressScreen
 import com.voxplanapp.ui.main.MainScreen
 import java.time.LocalDate
 
@@ -75,6 +76,14 @@ fun VoxPlanNavHost(
             )
         }
 
+        /* QUOTA PROGRESS REPORTS */
+
+        composable(route = VoxPlanScreen.Progress.route) {
+            ProgressScreen(
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+
         /* DAY SCHEDULER */
 
         composable(
@@ -117,27 +126,6 @@ fun VoxPlanNavHost(
             )
         }
 
-        /* quick schedule screen
-
-        composable(
-            route = VoxPlanScreen.QuickSchedule.routeWithArgs,
-            arguments = listOf(navArgument(VoxPlanScreen.QuickSchedule.goalIdArg) { type = NavType.IntType })
-        ) { backStackEntry ->
-            val goalId = backStackEntry.arguments?.getInt(VoxPlanScreen.QuickSchedule.goalIdArg)
-            requireNotNull(goalId) { "goalId parameter wasn't found. Please make sure it's set!" }
-            QuickScheduleScreen(
-                goalId = goalId,
-                onSchedule = { date ->
-                    navController.navigate("${VoxPlanScreen.DaySchedule.createRouteWithDate(date)}") {
-                        popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
-                },
-                onDismiss = { navController.navigateUp() }
-            )
-        }
-
-         */
 
     }
 }

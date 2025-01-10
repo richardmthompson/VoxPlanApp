@@ -19,6 +19,9 @@ interface TodoDao {
     @Query("SELECT * FROM TodoItem WHERE parentID = null")
     fun getRootTodos(): List<TodoItem>
 
+    @Query("SELECT * FROM TodoItem WHERE id IN (:ids)")
+    fun getItemsByIds(ids: List<Int>): Flow<List<TodoItem>>
+
     @Query("SELECT * FROM TodoItem WHERE parentID = :parentId")
     fun getChildrenOf(parentId: Int): List<TodoItem>
 

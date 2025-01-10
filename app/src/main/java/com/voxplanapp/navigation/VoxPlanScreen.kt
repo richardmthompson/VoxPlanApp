@@ -15,6 +15,8 @@ sealed class VoxPlanScreen(val route: String) {
         val routeWithArgs = "$route/{$goalIdArg}"
     }
 
+    object Progress: VoxPlanScreen("progress")
+
     object DaySchedule : VoxPlanScreen("day_schedule") {
         const val dateArg = "date"
         val routeWithArgs = "$route/{$dateArg}"

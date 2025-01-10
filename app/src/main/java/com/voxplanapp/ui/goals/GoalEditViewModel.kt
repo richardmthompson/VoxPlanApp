@@ -20,11 +20,14 @@ import androidx.compose.runtime.setValue
 import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.GoalWithSubGoals
+import com.voxplanapp.data.Quota
+import com.voxplanapp.data.QuotaRepository
 import com.voxplanapp.data.RecurrenceType
 import com.voxplanapp.navigation.VoxPlanScreen
 import com.voxplanapp.shared.SharedViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -32,20 +35,24 @@ import java.time.LocalTime
 data class GoalUiState(
     val goal: GoalWithSubGoals?,
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    // quota state
+    val quotaMinutes: Int = 60,
+    val quotaActiveDays: Set<DayOfWeek> = setOf()
 )
 
 /*
     GoalEditViewModel * retrieves the TodoItemStream from repository
     * converts each TodoItem to GoalWithSubGoals object
     * emits goalUiState as uiState property, so we can keep the Ui updated.
-    (modified as GoalWithSubGoals to be more consistent with rest of app)
  */
+
 class GoalEditViewModel(
     savedStateHandle: SavedStateHandle,
     private val sharedViewModel: SharedViewModel,
     private val todoRepository: TodoRepository,
     private val eventRepository: EventRepository,
+    private val quotaRepository: QuotaRepository
 ): ViewModel() {
 
     // retrieves goalId from the saved state handle, if the process has re-started
@@ -56,15 +63,34 @@ class GoalEditViewModel(
 
     init {
         viewModelScope.launch {
+            // first, get the corresponding goal from repository
             val allTodos = todoRepository.getAllTodos().first()
             val result = sharedViewModel.getGoalWithSubGoals(allTodos, goalId)
 
-            goalUiState = if (result != null) {
-                GoalUiState(goal = result, isLoading = false)
-            } else {
-                GoalUiState(goal = null, isLoading = false, error = "Goal not found")
+            goalUiState = if (result != null) GoalUiState(goal = result, isLoading = false)
+            else GoalUiState(goal = null, isLoading = false, error = "Goal not found")
+
+            // now, get any relevant goal quotas
+            val quota = quotaRepository.getQuotaForGoal(goalId).first()
+            if (quota != null) {
+                goalUiState = goalUiState.copy(
+                    quotaMinutes = quota.dailyMinutes ?: 60,
+                    // produces a set of currently active days according to the string code used for activeDays
+                    // a set of DayOfWeek enum names (of actual days of the week) - our working set that we re-encode when exiting
+                    quotaActiveDays = (quota.activeDays.mapIndexedNotNull { index, active ->
+                        if (active == '1') DayOfWeek.of(index + 1) else null
+                    } ?.toSet()) ?: setOf()
+                )
             }
        }
+    }
+
+    fun updateQuotaMinutes(minutes: Int) {
+        goalUiState = goalUiState.copy(quotaMinutes = minutes)
+
+    }
+    fun updateQuotaActiveDays(days: Set<DayOfWeek>) {
+        goalUiState = goalUiState.copy(quotaActiveDays = days)
     }
 
     fun updateGoalAttribute(attribute: String, value: Any) {
@@ -84,13 +110,44 @@ class GoalEditViewModel(
 
     fun saveGoal() {
         viewModelScope.launch {
+
+            // if we have a goal to work with, we have something to save
             goalUiState.goal?.let { goalWithSubGoals ->
                 todoRepository.insert(goalWithSubGoals.goal)
+
+                if (goalUiState.quotaActiveDays.isEmpty()) {        // remove quota if nothing set
+                    // delete the quota from the repository
+                    quotaRepository.deleteQuotaForGoal(goalWithSubGoals.goal.id)
+                } else {
+                    // save quota info
+                    val activeDaysString = buildString {
+                        for (i in 1..7) {
+                            append(if (DayOfWeek.of(i) in goalUiState.quotaActiveDays) "1" else "0")
+                        }
+                    }
+                    quotaRepository.insertQuota(
+                        Quota(
+                            goalId = goalWithSubGoals.goal.id,
+                            dailyMinutes = goalUiState.quotaMinutes,
+                            activeDays = activeDaysString
+                        )
+                    )
+                }
+
             } ?: run {
                 Log.d("GoalEditViewModel", "Can't save goal, it's null for some reason.")
                 return@launch
             }
         }
+    }
+
+    // removes the visual component of the quota (repository is altered on save)
+    fun removeQuota() {
+        // reset the ui state values
+        goalUiState = goalUiState.copy(
+            quotaMinutes = 60,
+            quotaActiveDays = setOf()
+        )
     }
 
     suspend fun getParentGoalTitle(): String? {

@@ -53,6 +53,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -239,6 +240,8 @@ fun BasicSchedule(
     var selectedEventId by remember { mutableStateOf<Int?>(null)}
     Log.d("BasicSchedule","--------- recomp --------")
 
+    val layoutInfo = remember(events) { findOverlappingEvents(events) }
+
     Box(
 
         modifier = modifier
@@ -304,7 +307,8 @@ fun BasicSchedule(
                 },
                 onEventDeleted = { deletedEvent ->
                     onEventDeleted(deletedEvent)
-                }
+                },
+                layoutInfo = layoutInfo[event] ?: EventLayoutInfo(0.8f, 0f),        // default to full width if no overlap
             )
 
             // if selectedEventId not null, an event has been selected
@@ -312,7 +316,7 @@ fun BasicSchedule(
             // use coords to calculate position of icon box
             // draw icon box
             Log.d("BasicSchedule","pre-EventActions: selected Event Id = $selectedEventId")
-            if (selectedEventId != null) {
+            if (selectedEventId == event.id) {
                 EventActions(
                     event = event,
                     hourHeight = hourHeight,
@@ -332,6 +336,54 @@ fun BasicSchedule(
     }
 }
 
+data class EventLayoutInfo(
+    val width: Float,  // as a percentage of full width
+    val xOffset: Float // as a percentage of full width
+)
+
+// Add this function to identify and group overlapping events
+fun findOverlappingEvents(events: List<Event>): Map<Event, EventLayoutInfo> {
+    val layoutInfo = mutableMapOf<Event, EventLayoutInfo>()
+
+    // Sort events by start time
+    val sortedEvents = events.sortedBy { it.startTime }
+
+    // Find overlapping groups
+    val overlappingGroups = mutableListOf<MutableList<Event>>()
+
+    for (event in sortedEvents) {
+        var addedToExisting = false
+
+        // Try to add to existing group
+        for (group in overlappingGroups) {
+            val lastEvent = group.last()
+            if (event.startTime < lastEvent.endTime) {
+                group.add(event)
+                addedToExisting = true
+                break
+            }
+        }
+
+        // Create new group if doesn't fit in existing ones
+        if (!addedToExisting) {
+            overlappingGroups.add(mutableListOf(event))
+        }
+    }
+
+    // Calculate layout info for each group
+    overlappingGroups.forEach { group ->
+        val groupSize = group.size
+        val width = 0.85f / groupSize  // Leave some margin
+
+        group.forEachIndexed { index, event ->
+            val xOffset = index * width
+            layoutInfo[event] = EventLayoutInfo(width, xOffset)
+        }
+    }
+
+    return layoutInfo
+}
+
 fun calculateEventPosition(
     event: Event,
     hourHeight: Dp,
@@ -348,6 +400,7 @@ fun calculateEventPosition(
 @Composable
 fun EventBox(
     event: Event,
+    layoutInfo: EventLayoutInfo,
     onSelect: () -> Unit,
     onDeselect: () -> Unit,
     isSelected: Boolean,
@@ -376,18 +429,24 @@ fun EventBox(
 
     Log.d("BasicSchedule", "BUILDING EVENTBOX ${event.title}: ${event.startTime} -> ${event.endTime} isSelected $isSelected")
 
+    // Get screen width in dp
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
     val (initialXPos, initialYPos) = remember(event.startTime) {
         calculateEventPosition(event = event, hourHeight = hourHeight, startHour = startHour)
     }
 
     Box(
         modifier = modifier
-            .fillMaxWidth(0.9f)
+            .fillMaxWidth(layoutInfo.width)
             .padding(horizontal = eventPadding)
             .height(height)
             .offset(
                 y = initialYPos + eventPadding + with(density) { dragOffset.y.toDp() },
-                x = initialXPos
+                x = with(density) {
+                    (screenWidth * layoutInfo.xOffset) + initialXPos
+                }
             )
             .background(
                 if (isDragging) Color.Gray.copy(alpha = 0.5f) else EventBoxColor,

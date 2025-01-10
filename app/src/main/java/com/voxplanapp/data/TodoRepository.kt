@@ -14,6 +14,9 @@ class TodoRepository(private val todoDao: TodoDao) {
 
     fun getRootTodos() : List<TodoItem> = todoDao.getRootTodos()
 
+    // get a list of items from a list of provided ids
+    fun getItemsByIds(ids: List<Int>): Flow<List<TodoItem>> = todoDao.getItemsByIds(ids)
+
     suspend fun expandItem(todoId: Int, expand: Boolean) = todoDao.expandItem(todoId, expand)
 
     fun getChildrenOf(parentId: Int): List<TodoItem> = todoDao.getChildrenOf(parentId)

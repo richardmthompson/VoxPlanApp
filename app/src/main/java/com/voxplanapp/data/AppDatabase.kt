@@ -7,11 +7,12 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @TypeConverters(Converters::class)
-@Database(entities = [TodoItem::class, Event::class, TimeBank::class], version = 9)
+@Database(entities = [TodoItem::class, Event::class, TimeBank::class, Quota::class], version = 10)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun todoDao(): TodoDao
     abstract fun eventDao(): EventDao
     abstract fun timeBankDao(): TimeBankDao
+    abstract fun quotaDao(): QuotaDao
 
     companion object {
         val MIGRATION_2_3 = object : Migration(2,3) {
@@ -83,6 +84,20 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Add the new column
                 database.execSQL("ALTER TABLE TodoItem ADD COLUMN completedDate INTEGER")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9,10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS Quota (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    goalId INTEGER NOT NULL,
+                    dailyMinutes INTEGER NOT NULL,
+                    activeDays TEXT NOT NULL,
+                    FOREIGN KEY (goalId) REFERENCES TodoItem(id) ON DELETE CASCADE
+                    )
+                """)
             }
         }
 

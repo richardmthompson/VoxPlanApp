@@ -1,5 +1,6 @@
 package com.voxplanapp.ui.main
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -160,6 +161,9 @@ fun MainScreen(
 
 @Composable
 fun PowerBar(totalMinutes: Int, modifier: Modifier = Modifier) {
+
+    Log.d("datedebug", "3. on main screen: PowerBar() totalMinutes $totalMinutes")
+
     val remainingMinutes = totalMinutes % 60
     val diamondThreshold = FULLBAR_MINS * 4
     val diamonds = totalMinutes / diamondThreshold      // calculate number of diamonds

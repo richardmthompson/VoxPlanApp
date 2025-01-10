@@ -70,6 +70,7 @@ import com.voxplanapp.ui.constants.ToolbarColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.annotations.Async.Schedule
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -120,10 +121,13 @@ fun GoalEditScreen(
                 Text("Error loading: ${uiState.error}")
             } else {
                 GoalEntryBody(
-                    goal = uiState.goal,
+                    uiState = uiState,
                     parentGoalTitle = parentGoalTitle,
                     onValueChange = { attribute, value -> viewModel.updateGoalAttribute(attribute, value) },
                     onNavigateToFocusMode = { goalId -> onNavigateToFocusMode(goalId) },
+                    onQuotaMinutesChanged = viewModel::updateQuotaMinutes,
+                    onActiveDaysChanged = viewModel::updateQuotaActiveDays,
+                    onRemoveQuota = viewModel::removeQuota,
                     onScheduleClick = { showScheduleDialog = true },
                     onSaveClick = {
                         viewModel.saveGoal()
@@ -153,14 +157,19 @@ fun GoalEditScreen(
 
 @Composable
 fun GoalEntryBody(
-    goal: GoalWithSubGoals,
+    uiState: GoalUiState,
     parentGoalTitle: String?,
     onValueChange: (String, Any) -> Unit,
     onSaveClick: () -> Unit,
+    onQuotaMinutesChanged: (Int) -> Unit,
+    onActiveDaysChanged: (Set<DayOfWeek>) -> Unit,
+    onRemoveQuota: () -> Unit,
     onNavigateToFocusMode: (Int) -> Unit,
     onScheduleClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val goal = uiState.goal!!.goal
+
     Column(
         modifier = modifier
             .padding(16.dp)
@@ -168,26 +177,112 @@ fun GoalEntryBody(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         ItemIdRow(
-            goalId = goal.goal.id,
+            goalId = goal.id,
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.LightGray)
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         )
+
+        /* show position of goal in hierarchy */
         GoalHierarchyDisplay(
-            goal = goal.goal,
+            goal = goal,
             parentGoalTitle = parentGoalTitle,
             modifier = Modifier
                 .fillMaxWidth()
         )
-        GoalInputForm(
-            // loads the input form with the current goal details from the Ui State
-            goalWithSubGoals = goal,
-            onValueChange = onValueChange,
-            onNavigateToFocusMode = { goalId -> onNavigateToFocusMode(goalId) },
-            onScheduleClick = onScheduleClick,
-            modifier = Modifier.fillMaxWidth()
-        )
+
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = goal.title,
+                // updates the Ui State with any changes to the text field as they happen
+                onValueChange = { onValueChange("title", it) },
+                label = { Text(stringResource(id = R.string.goal_title)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Column(modifier = modifier
+                .background(color = ToolbarColor, shape = RoundedCornerShape(MediumDp))
+                .border(width = 1.dp, ToolbarBorderColor, shape = RoundedCornerShape(MediumDp))
+            ) {
+                Text(
+                    text = "Scheduling details",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = modifier.padding(start = 4.dp, top = 4.dp)
+                )
+
+                PreferredTimeSelector(
+                    preferredTime = goal.preferredTime ?: LocalTime.of(7, 0),
+                    onTimeSelected = { onValueChange("preferredTime", it) },
+                    modifier = modifier.padding(start = 4.dp, top = 0.dp)
+                )
+
+                DurationSelector(
+                    duration = goal.estDurationMins ?: 30,
+                    onDurationChanged = { onValueChange("estDurationMins", it) },
+                    modifier = modifier.padding(start = 4.dp, top = 0.dp)
+                )
+
+                FrequencySelector(
+                    frequency = goal.frequency,
+                    onFrequencyChanged = { onValueChange("frequency", it) },
+                    modifier = modifier.padding(start = 4.dp, top = 0.dp)
+                )
+
+                Row (modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button(
+                        onClick = { onNavigateToFocusMode(goal.id) }
+                    ) {
+                        Text("Focus Mode!")
+                    }
+                    Button(
+                        onClick = { onScheduleClick() },
+                    ) { Text("Schedule!") }
+                }
+            }
+
+            QuotaSettingsSection(
+                quotaMinutes = uiState.quotaMinutes,
+                activeDays = uiState.quotaActiveDays,
+                onQuotaMinutesChanged = onQuotaMinutesChanged,
+                onActiveDaysChanged = onActiveDaysChanged,
+                onRemoveQuota = onRemoveQuota
+            )
+
+            OutlinedTextField(
+                value = goal.notes ?: "",
+                onValueChange = { onValueChange("notes", it) },
+                label = { Text(stringResource(R.string.goal_notes)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+                singleLine = false
+            )
+
+            /* isdone */
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = goal.isDone,
+                    onCheckedChange = { onValueChange("isDone", it) },
+                )
+                Text(
+                    text = stringResource(id = R.string.is_goal_done),
+                    modifier = Modifier.padding(start=8.dp)
+                )
+            }
+        }
+
+        /* save button */
         Button(
             onClick = { onSaveClick() },
             shape = MaterialTheme.shapes.small,
@@ -264,103 +359,6 @@ fun GoalHierarchyDisplay(
     }
 }
 
-@Composable
-fun GoalInputForm(
-    goalWithSubGoals: GoalWithSubGoals,
-    onValueChange: (String, Any) -> Unit,
-    onNavigateToFocusMode: (Int) -> Unit,
-    onScheduleClick: () -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier,
-) {
-    val goal = goalWithSubGoals.goal
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        OutlinedTextField(
-            value = goalWithSubGoals.goal.title,
-            // updates the Ui State with any changes to the text field as they happen
-            onValueChange = { onValueChange("title", it) },
-            label = { Text(stringResource(id = R.string.goal_title)) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = enabled,
-            singleLine = true
-        )
-
-        Column(modifier = modifier
-            .background(color = ToolbarColor, shape = RoundedCornerShape(MediumDp))
-            .border(width = 1.dp, ToolbarBorderColor, shape = RoundedCornerShape(MediumDp))
-        ) {
-            Text(
-                text = "Scheduling details",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = modifier.padding(start = 4.dp, top = 4.dp)
-            )
-
-            PreferredTimeSelector(
-                preferredTime = goal.preferredTime ?: LocalTime.of(7, 0),
-                onTimeSelected = { onValueChange("preferredTime", it) },
-                modifier = modifier.padding(start = 4.dp, top = 0.dp)
-            )
-
-            DurationSelector(
-                duration = goal.estDurationMins ?: 0,
-                onDurationChanged = { onValueChange("estDurationMins", it) },
-                modifier = modifier.padding(start = 4.dp, top = 0.dp)
-            )
-
-            FrequencySelector(
-                frequency = goal.frequency,
-                onFrequencyChanged = { onValueChange("frequency", it) },
-                modifier = modifier.padding(start = 4.dp, top = 0.dp)
-            )
-
-            Row (modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween) {
-                Button(
-                    onClick = { onNavigateToFocusMode(goal.id) }
-                ) {
-                    Text("Focus Mode!")
-                }
-                Button(
-                    onClick = { onScheduleClick() },
-                ) { Text("Schedule!") }
-            }
-        }
-
-        OutlinedTextField(
-            value = goal.notes ?: "",
-            onValueChange = { onValueChange("notes", it) },
-            label = { Text(stringResource(R.string.goal_notes)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            enabled = enabled,
-            singleLine = false
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            /*
-            Checkbox(
-                checked = goal.isDone,
-                onCheckedChange = { onValueChange("isDone", it) },
-                enabled = enabled
-            )
-            Text(
-                text = stringResource(id = R.string.is_goal_done),
-                modifier = Modifier.padding(start=8.dp)
-            )
-
-             */
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleDialog(
@@ -408,8 +406,9 @@ fun PreferredTimeSelector(
     modifier: Modifier = Modifier
 ) {
 
-    var hours by remember { mutableIntStateOf(preferredTime.hour) }
-    var minutes by remember { mutableIntStateOf(preferredTime.minute)}
+    val initialTime = remember { preferredTime.takeIf { it != LocalTime.of(7, 0) } ?: LocalTime.now() }
+    var hours by remember { mutableIntStateOf(initialTime.hour) }
+    var minutes by remember { mutableIntStateOf(initialTime.minute)}
 
     Row(verticalAlignment = Alignment.CenterVertically) {
 

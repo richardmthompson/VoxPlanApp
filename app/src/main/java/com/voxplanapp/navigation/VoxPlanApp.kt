@@ -10,8 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -149,6 +151,12 @@ private val items = listOf(
         selectedIcon = Icons.Filled.List,
         unselectedIcon = Icons.Outlined.List,
         route = VoxPlanScreen.Main.route
+    ),
+    BottomNavigationItem(
+        title = "Progress",
+        selectedIcon = Icons.Filled.Timeline,
+        unselectedIcon = Icons.Outlined.Timeline,
+        route = VoxPlanScreen.Progress.route
     ),
     BottomNavigationItem(
         title = "Schedule",

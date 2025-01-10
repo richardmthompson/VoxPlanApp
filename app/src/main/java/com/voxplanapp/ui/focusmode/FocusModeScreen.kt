@@ -1,6 +1,5 @@
 package com.voxplanapp.ui.focusmode
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,8 +23,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,12 +36,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +52,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.VectorProperty
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -73,7 +75,6 @@ import com.voxplanapp.ui.constants.SmallDp
 import java.time.Duration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import kotlin.time.times
 
 
 @Composable
@@ -297,7 +298,11 @@ fun FocusModeScreen(
                         },
                             buttonText = "Bank Medals")
 
-                        RetroButton(onClick = onNavigateUp,
+                        RetroButton(
+                            onClick = {
+                                viewModel.onExit()
+                                onNavigateUp()
+                            },
                             buttonText = "Quit")
                     } // bottom buttons row
                 } // focus mode screen vertical layout column
@@ -352,19 +357,11 @@ fun DiscreteTaskClock(
 
 @Composable
 fun clockFaceMinutesButtons(
-    currentMinutes: Int,
-    onClockFaceMinutesChanged: (Int) -> Unit
+    currentMinutes: Float,
+    onClockFaceMinutesChanged: (Float) -> Unit
 ) {
-    val buttonValues = listOf(1, 3, 5, 10, 15, 30, 45, 60)
-
-    /*
-    Text(
-        text = "Timed Goals:",
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(bottom = 8.dp)
-    )
-     */
+    var showCustomDurationDialog by remember { mutableStateOf(false) }
+    val buttonValues = listOf(1, 3, 5, 10, 15, 30, 45, 0)
 
     Column(
         modifier = Modifier
@@ -377,7 +374,7 @@ fun clockFaceMinutesButtons(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly) {
             buttonValues.take(4).forEach { minutes ->
-                TimedGoalButton(minutes, currentMinutes, onClockFaceMinutesChanged)
+                TimedGoalButton(minutes.toFloat(), currentMinutes, onClockFaceMinutesChanged)
             }
         }
 
@@ -387,23 +384,42 @@ fun clockFaceMinutesButtons(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             buttonValues.takeLast(4).forEach { minutes ->
-                TimedGoalButton(minutes, currentMinutes, onClockFaceMinutesChanged)
+                TimedGoalButton(
+                    minutes.toFloat(), currentMinutes, onClockFaceMinutesChanged,
+                    onCustomDurationClick = { if (minutes == 0) showCustomDurationDialog = true }
+                )
             }
         }
+    }
+
+    if (showCustomDurationDialog) {
+        TimeConfigurationDialog(
+            initialMinutes = currentMinutes,
+            initialSeconds = 0,
+            onDismiss = { showCustomDurationDialog = false },
+            onConfirm = { minutes, seconds ->
+                showCustomDurationDialog = false
+                onClockFaceMinutesChanged(minutes + (seconds / 60.0f))
+            }
+        )
     }
 }
 
 @Composable
 private fun TimedGoalButton(
-    minutes: Int,
-    currentMinutes: Int,
-    onClockFaceMinutesChanged: (Int) -> Unit
+    minutes: Float,
+    currentMinutes: Float,
+    onClockFaceMinutesChanged: (Float) -> Unit,
+    onCustomDurationClick: () -> Unit = {}
 ) {
     val borderColor = if (currentMinutes == minutes) Color(0xFF007FFF) else Color(0xFF20409A)
     val containerColor = if (currentMinutes == minutes) Color(0xFF20409A) else MaterialTheme.colorScheme.background
 
     Button(
-        onClick = { onClockFaceMinutesChanged(minutes) },
+        onClick = {
+            if (minutes == 0f) onCustomDurationClick()
+            else onClockFaceMinutesChanged(minutes.toFloat())
+        },
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor
         ),
@@ -413,7 +429,7 @@ private fun TimedGoalButton(
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
     ) {
         Text(
-            text = minutes.toString(),
+            text = if (minutes == 0f) "?" else minutes.toString(),
             modifier = Modifier.padding(0.dp)
         )
     }
@@ -492,7 +508,6 @@ fun PomodoroControls(
                 modifier = Modifier.size(FocusIconSize)
             )
         }
-
     }
 }
 
@@ -582,7 +597,7 @@ fun TimerDisplay(
         quarterTimes.forEachIndexed { index, fraction ->
             val time = calculateQuarterTime(focusUiState.clockFaceMins, fraction)
             Text(
-                text = formatQuarterTime(time),
+                text = time,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .align(
@@ -720,6 +735,91 @@ fun MedalItem(medal: Medal) {
     }
 }
 
+// dialogue box for configurable time
+
+@Composable
+fun TimeConfigurationDialog(
+    initialMinutes: Float,
+    initialSeconds: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Float, Int) -> Unit
+) {
+    var minutes by remember { mutableStateOf(initialMinutes) }
+    var seconds by remember { mutableStateOf(initialSeconds) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Set Timer Duration") },
+        text = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Minutes
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Minutes")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { if (minutes > 0) minutes-- }) {
+                            Icon(Icons.Default.Remove, "Decrease minutes")
+                        }
+                        Text(
+                            text = minutes.toString().padStart(2, '0'),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        IconButton(onClick = { minutes++ }) {
+                            Icon(Icons.Default.Add, "Increase minutes")
+                        }
+                    }
+                }
+
+                Text(":", style = MaterialTheme.typography.headlineMedium)
+
+                // Seconds
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Seconds")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = {
+                            if (seconds > 0) seconds--
+                            else if (minutes > 0) {
+                                minutes--
+                                seconds = 59
+                            }
+                        }) {
+                            Icon(Icons.Default.Remove, "Decrease seconds")
+                        }
+                        Text(
+                            text = seconds.toString().padStart(2, '0'),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        IconButton(onClick = {
+                            if (seconds < 59) seconds++
+                            else {
+                                minutes++
+                                seconds = 0
+                            }
+                        }) {
+                            Icon(Icons.Default.Add, "Increase seconds")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(minutes, seconds) }) {
+                Text("Set")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+
+
 // typography and theming functions
 
 @Composable
@@ -813,8 +913,14 @@ fun formatDuration(start: LocalTime?, end: LocalTime?): String {
     return "[missing data]"
 }
 
-fun calculateQuarterTime(totalMinutes: Int, fraction: Double): Double {
-    return totalMinutes.toDouble() * fraction
+fun calculateQuarterTime(totalMinutes: Float, fraction: Double): String {
+    val minutes = (totalMinutes * fraction).toInt()
+    val seconds = ((totalMinutes * fraction * 60) % 60).toInt()
+    return if (seconds == 0) {
+        minutes.toString()
+    } else {
+        "$minutes:${seconds.toString().padStart(2, '0')}"
+    }
 }
 
 fun formatQuarterTime(time: Double): String {

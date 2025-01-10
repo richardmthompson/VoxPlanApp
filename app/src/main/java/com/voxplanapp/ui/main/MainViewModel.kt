@@ -29,6 +29,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.Collections
 
 class MainViewModel (
@@ -61,11 +64,24 @@ class MainViewModel (
     )
 
     // set up daily power bar.  this will collect total time accrued in time bank in minutes.
+    val queryDate = LocalDate.now()
+
     val todayTotalTime: StateFlow<Int> = timeBankRepository.getTotalTimeForDate(LocalDate.now())
-        // report 0 if we're not getting any report
-        .map { it ?: 0 }
+
+    // report 0 if we're not getting any report
+        .map { value ->
+            Log.d("datedebug", "1. Raw value from repository: $value")
+            value ?: 0
+        }
 
         .onEach { minutes ->
+            Log.d("datedebug", "2. After null check: $minutes")
+            val now = LocalDateTime.now()
+            val date = LocalDate.now()
+            val zoneId = ZoneId.systemDefault()
+            val zoneDateTime = ZonedDateTime.now()
+            val systemMillis = System.currentTimeMillis()
+
             val hasDiamond = minutes >= FULLBAR_MINS * 4
             if (hasDiamond && !hadDiamond) {
                 soundPlayer.playSound(R.raw.power_up)

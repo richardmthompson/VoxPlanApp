@@ -13,6 +13,7 @@ import com.voxplanapp.R
 import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.GoalWithSubGoals
+import com.voxplanapp.data.RecurrenceType
 import com.voxplanapp.data.TimeBankRepository
 import com.voxplanapp.data.TodoRepository
 import com.voxplanapp.navigation.VoxPlanScreen
@@ -29,6 +30,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 
 class FocusViewModel(
     savedStateHandle: SavedStateHandle,
@@ -107,7 +109,13 @@ class FocusViewModel(
     fun startTimer() {
         var startTime: Long = 0L
 
-        if (focusUiState.timerState == TimerState.IDLE) {
+        if (!focusUiState.timerStarted) {       // sets 'true' start time when first timer is begun
+            focusUiState = focusUiState.copy(   // start time is otherwise set to start of opening focus mode
+                timerStarted = true,
+                startTime = LocalTime.now()
+            )
+        }
+        if (focusUiState.timerState == TimerState.IDLE) {       // if timer is starting from idle, play sound
             viewModelScope.launch {
                 delay(1500)
                 soundPlayer.playSound(R.raw.countdown_start)
@@ -125,9 +133,9 @@ class FocusViewModel(
         _timerJob.value = viewModelScope.launch {
             while (isActive) {
                 val currentTime = System.currentTimeMillis()
-                Log.d("Timer","currentTime = ${currentTime}")
+                //Log.d("Timer","currentTime = ${currentTime}")
                 val elapsedTime = currentTime - startTime
-                Log.d("Timer","elapsed time = ${elapsedTime}")
+                //Log.d("Timer","elapsed time = ${elapsedTime}")
                 updateTimerState(elapsedTime)
                 delay(1000)
             }
@@ -142,7 +150,7 @@ class FocusViewModel(
     // set up time-based variables for the focus mode screen
     private fun setupTimeBank() {
         val clockFaceMins = 30
-        focusUiState = focusUiState.copy(clockFaceMins = 30)
+        focusUiState = focusUiState.copy(clockFaceMins = 30f)
     }
 
     // runs every second while the clock is ticking.
@@ -154,7 +162,7 @@ class FocusViewModel(
         // if we hit a revolution, award a medal with that amount of time,
         // re-set clock and start next round
         if (progress == 1f) {
-            awardMedal(Medal(focusUiState.clockFaceMins, MedalType.MINUTES))
+            awardMedal(Medal(focusUiState.clockFaceMins.toInt(), MedalType.MINUTES))
             resetTimer()
             // stops playing the start countdown sound every time the clock ticks round
             focusUiState = focusUiState.copy(timerState = TimerState.PAUSED)
@@ -214,7 +222,7 @@ class FocusViewModel(
         _timerJob.value = null
     }
 
-    fun updateClockFaceMinutes(minutes: Int) {
+    fun updateClockFaceMinutes(minutes: Float) {
         focusUiState = focusUiState.copy(clockFaceMins = minutes)
     }
 
@@ -315,10 +323,10 @@ class FocusViewModel(
 
         // award medal based on the current level
         val medal = when (focusUiState.currentTaskLevel) {
-            DiscreteTaskLevel.EASY -> Medal(30, MedalType.MINUTES)
-            DiscreteTaskLevel.CHALLENGE -> Medal(1, MedalType.HOURS)
-            DiscreteTaskLevel.DISCIPLINE -> Medal(2, MedalType.HOURS)
-            DiscreteTaskLevel.EPIC_WIN -> Medal(3, MedalType.HOURS)
+            DiscreteTaskLevel.EASY -> Medal(15, MedalType.MINUTES)
+            DiscreteTaskLevel.CHALLENGE -> Medal(30, MedalType.MINUTES)
+            DiscreteTaskLevel.DISCIPLINE -> Medal(1, MedalType.HOURS)
+            DiscreteTaskLevel.EPIC_WIN -> Medal(2, MedalType.HOURS)
             else -> null
         }
 
@@ -372,21 +380,82 @@ class FocusViewModel(
     fun bankTime() {
         val medalTime = focusUiState.medals.sumOf { it.value }
 
-        viewModelScope.launch {
-            val goalId = goalUiState?.goal?.id ?: return@launch
-            timeBankRepository.addTimeBankEntry(goalId, medalTime)
+        if (medalTime > 0) {
+            viewModelScope.launch {
+                val goalId = goalUiState?.goal?.id ?: return@launch
+                timeBankRepository.addTimeBankEntry(goalId, medalTime)
+
+                // Create an event for the banked time session
+                val startTime = focusUiState.startTime ?: LocalTime.now()
+                val event = Event(
+                    goalId = goalId,
+                    title = goalUiState?.goal?.title ?: "Focused Work",
+                    startTime = startTime,
+                    endTime = startTime.plusMinutes(medalTime.toLong()),
+                    startDate = focusUiState.date ?: LocalDate.now(),
+                    recurrenceType = RecurrenceType.NONE,
+                    recurrenceInterval = null,
+                    recurrenceEndDate = null,
+                    color = 0
+                )
+                eventRepository.insertEvent(event)
+            }
+
+            // clear medals
+            focusUiState = focusUiState.copy(medals = emptyList())
+            soundPlayer.playSound(R.raw.chaching)
+
+            // log what happened
+            if (goalId != null) Log.d("TimeBank", "Banked $medalTime minutes into goalId $goalId?")
+            else Log.d("TimeBank", "Trying to bank time failed, no goal id")
+
+            // Update goal or event with accrued time
         }
+    }
 
-        // clear medals
-        focusUiState = focusUiState.copy(medals = emptyList())
+    /** focus mode creates an event automatically on exit, as long as >5m focus has been achieved
+     *
+      */
 
-        soundPlayer.playSound(R.raw.chaching)
+    fun onExit() {
+        // we may need to modify the 
+    }
 
-        // log what happened
-        if (goalId != null) Log.d("TimeBank","Banked $medalTime minutes into goalId $goalId?")
-        else Log.d("TimeBank", "Trying to bank time failed, no goal id")
+    private fun createOrUpdateEvent(): Boolean {
+        val startTime = focusUiState.startTime ?: return false
+        val endTime = focusUiState.endTime ?: return false
 
-        // Update goal or event with accrued time
+        // Calculate minutes spent
+        val minutesSpent = ChronoUnit.MINUTES.between(startTime, endTime)
+        if (minutesSpent < 10) return false  // Skip if less than 10 minutes
+
+        viewModelScope.launch {
+            if (focusUiState.isFromEvent) {
+                // Update existing event
+                eventUiState?.let { existingEvent ->
+                    val updatedEvent = existingEvent.copy(
+                        startTime = startTime,
+                        endTime = endTime
+                    )
+                    eventRepository.updateEvent(updatedEvent)
+                }
+            } else {
+                // Create new event
+                val newEvent = Event(
+                    goalId = goalUiState?.goal?.id ?: return@launch,
+                    title = goalUiState?.goal?.title ?: return@launch,
+                    startTime = startTime,
+                    endTime = endTime,
+                    startDate = LocalDate.now(),
+                    recurrenceType = RecurrenceType.NONE,
+                    recurrenceInterval = null,
+                    recurrenceEndDate = null,
+                    color = 0
+                )
+                eventRepository.insertEvent(newEvent)
+            }
+        }
+        return true
     }
 
     /* functions for loading event and goal data into the screen from nav args */
@@ -546,6 +615,7 @@ data class FocusUiState (
     val startTime : LocalTime? = null,
     val endTime: LocalTime? = null,
     val date: LocalDate? = null,
+    val timerStarted: Boolean = false, // tracks if we've started timing actual focus work.
 
     // function vars
     val clockProgress: Float = 0f,
@@ -555,7 +625,7 @@ data class FocusUiState (
     val totalAccruedTime: Long = 0L,
     val currentTime: Long = 0L,
     val timerState: TimerState = TimerState.IDLE,
-    val clockFaceMins: Int = 30,
+    val clockFaceMins: Float = 30f,
     val isRestPeriod: Boolean = false,
 
     // discrete mode variables

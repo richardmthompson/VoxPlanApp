@@ -12,6 +12,7 @@ import com.voxplanapp.ui.calendar.SchedulerViewModel
 import com.voxplanapp.ui.focusmode.FocusViewModel
 import com.voxplanapp.ui.main.MainViewModel
 import com.voxplanapp.ui.goals.GoalEditViewModel
+import com.voxplanapp.ui.goals.ProgressViewModel
 import kotlinx.coroutines.Dispatchers
 
 object AppViewModelProvider {
@@ -42,7 +43,8 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 sharedViewModel = sharedViewModel,
                 voxPlanApplication().container.todoRepository,
-                voxPlanApplication().container.eventRepository
+                voxPlanApplication().container.eventRepository,
+                voxPlanApplication().container.quotaRepository
             )
         }
 
@@ -65,6 +67,14 @@ object AppViewModelProvider {
                 timeBankRepository = voxPlanApplication().container.timeBankRepository,
                 soundPlayer = voxPlanApplication().container.soundPlayer,
                 sharedViewModel = sharedViewModel
+            )
+        }
+
+        initializer {
+            ProgressViewModel(
+                todoRepository = voxPlanApplication().container.todoRepository,
+                timeBankRepository = voxPlanApplication().container.timeBankRepository,
+                quotaRepository = voxPlanApplication().container.quotaRepository
             )
         }
     }

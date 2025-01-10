@@ -55,25 +55,35 @@ __version_2__
 
 * diamond display when daily time focus quota achieved!
 
+<todo>
 
 __version_3__
 
+* set goal-specific time quotas for daily basis
 
+* view progress on a weekly-screen for daily quotas
 
-<todo>
+* initial reactive agent-rules:
+	- schedule today's activities based on quotas
+		* (what other rules are required for this?)
+		* establish other fixed events, e.g. meal-times
+	
 
 __version_4__
+
+* ai voice controlled assistant installation
+
+* voice recognition for:
+	& goal entry
+	& scheduling
+
+
+__version_5__
 
 * load/retrieve goals to/from cloud storage
 
 * connection to desktop version of voxplan
 
-
-__version_5__
-
-* ai voice controlled assistant installation
-
-* voice recognition for goal entry
 
 __version_6__
 
