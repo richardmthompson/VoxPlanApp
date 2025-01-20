@@ -26,10 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Stream
@@ -40,7 +36,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -357,10 +352,13 @@ fun findOverlappingEvents(events: List<Event>): Map<Event, EventLayoutInfo> {
         // Try to add to existing group
         for (group in overlappingGroups) {
             val lastEvent = group.last()
-            if (event.startTime < lastEvent.endTime) {
-                group.add(event)
-                addedToExisting = true
-                break
+            // nullable check because technically values could be null (but shouldn't in practice due to pre-filtering in view model's init)
+            if (event.startTime != null && lastEvent.endTime != null) {
+                if (event.startTime < lastEvent.endTime) {
+                    group.add(event)
+                    addedToExisting = true
+                    break
+                }
             }
         }
 
@@ -389,6 +387,8 @@ fun calculateEventPosition(
     hourHeight: Dp,
     startHour: Int
 ): Pair<Dp, Dp> {
+    if (event.startTime == null) return Pair(0.dp,0.dp)
+
     val eventPadding = 2.dp
     val yPos = hourHeight * (event.startTime.hour - startHour) +
             (hourHeight * event.startTime.minute / 60f) +
@@ -436,6 +436,8 @@ fun EventBox(
     val (initialXPos, initialYPos) = remember(event.startTime) {
         calculateEventPosition(event = event, hourHeight = hourHeight, startHour = startHour)
     }
+
+    if (event.startTime == null) return
 
     Box(
         modifier = modifier
@@ -549,6 +551,8 @@ fun EventActions(
     val iconRowHeight = EventIconSize + MediumDp
 
     Log.d("BasicSchedule", "EventActions triggered @ $xPos, $yPos")
+
+    if (event.endTime == null) return
 
     Box(
         modifier = Modifier

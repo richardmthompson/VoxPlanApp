@@ -15,6 +15,7 @@ import com.voxplanapp.data.TodoItem
 import com.voxplanapp.data.TodoRepository
 import com.voxplanapp.data.pointsForItemCompletion
 import com.voxplanapp.model.ActionMode
+import com.voxplanapp.navigation.ActionModeHandler
 import com.voxplanapp.shared.SharedViewModel
 import com.voxplanapp.shared.SoundPlayer
 import kotlinx.coroutines.CoroutineDispatcher
@@ -121,40 +122,9 @@ class MainViewModel (
 
     private val _actionMode = mutableStateOf<ActionMode>(ActionMode.Normal)
     val actionMode: State<ActionMode> = _actionMode
+    // allow us to access shared functions that change the action mode through the action bar
+    val actionModeHandler = ActionModeHandler(_actionMode)
 
-    private fun setActionMode(mode: ActionMode) {
-        _actionMode.value = mode
-    }
-    private fun resetActionMode() {
-        _actionMode.value = ActionMode.Normal
-    }
-
-    fun toggleUpActive() {
-        if (actionMode.value == ActionMode.VerticalUp) resetActionMode()
-        else { setActionMode(ActionMode.VerticalUp) }
-    }
-    // toggles the Vertical Down setting & button state
-    fun toggleDownActive() {
-        if (actionMode.value == ActionMode.VerticalDown) resetActionMode()
-        else { setActionMode(ActionMode.VerticalDown) }
-    }
-    fun toggleHierarchyUp() {
-        if (actionMode.value == ActionMode.HierarchyUp) resetActionMode()
-        else { setActionMode(ActionMode.HierarchyUp) }
-    }
-    fun toggleHierarchyDown() {
-        if (actionMode.value == ActionMode.HierarchyDown) resetActionMode()
-        else { setActionMode(ActionMode.HierarchyDown) }
-    }
-    private fun deactivateButtons() {
-        when (actionMode.value) {
-            ActionMode.VerticalUp -> toggleUpActive()
-            ActionMode.VerticalDown -> toggleDownActive()
-            ActionMode.HierarchyUp -> toggleHierarchyUp()
-            ActionMode.HierarchyDown -> toggleHierarchyDown()
-            ActionMode.Normal -> {}
-        }
-    }
     fun reorderItem(goal: GoalWithSubGoals) {
         when (actionMode.value) {
             ActionMode.VerticalUp -> vOrderItem(goal)
@@ -177,13 +147,13 @@ class MainViewModel (
         when (index) {
             -1 -> {
                 Log.e("moveToSub", "quitting: cannot find a goal with index ${goal.goal.id} anywhere!")
-                deactivateButtons()
+                actionModeHandler.deactivateButtons()
                 return
             }
             // if there is no goalAbove, or goal has no subGoals, exit.
             0 -> {
                 Log.e("moveToSub", "quitting: no goal to move to (no goal above!)")
-                deactivateButtons()
+                actionModeHandler.deactivateButtons()
                 return
             }
         }
@@ -220,7 +190,7 @@ class MainViewModel (
                 repository.updateItem(todoItem)
             }
         }
-        deactivateButtons()
+        actionModeHandler.deactivateButtons()
     }
 
     private fun findGoalContext(goalList: List<GoalWithSubGoals>, targetGoal: GoalWithSubGoals):
@@ -260,7 +230,7 @@ class MainViewModel (
 
         if (goal.goal.parentId == null) {
             Log.e("moveToSuper", "Goal isn't a sub-goal!  (doesn't have parent)")
-            deactivateButtons()
+            actionModeHandler.deactivateButtons()
             return
         }
 
@@ -282,7 +252,7 @@ class MainViewModel (
         if (parentGoal == null) {
             // if we haven't found our goal's parent, somethings gone very wrong.
             Log.e("moveToSuper", "Couldn't find parent.  This might be a problem.")
-            deactivateButtons()
+            actionModeHandler.deactivateButtons()
             return
         }
 
@@ -316,7 +286,7 @@ class MainViewModel (
 
             if (grandparentGoal == null) {
                 Log.e("moveToSuper", "grandparentGoalId $grandparentGoalId not found in breadcrumbs, aborting...")
-                deactivateButtons()
+                actionModeHandler.deactivateButtons()
                 return
             } else {
                 // targetGoalList should be a list of TodoItems:
@@ -348,7 +318,7 @@ class MainViewModel (
         viewModelScope.launch(ioDispatcher) {
             repository.updateItemsInTransaction(goalsToUpdate)
         }
-        deactivateButtons()
+        actionModeHandler.deactivateButtons()
     }
 
     private fun vOrderItem(goal: GoalWithSubGoals) {
@@ -373,14 +343,14 @@ class MainViewModel (
 
         if (currentList == null) {
             Log.e("reOrderItem", "Could not find item ${goal.goal.title} to reorder")
-            deactivateButtons()
+            actionModeHandler.deactivateButtons()
             return
         }
         // if moving up and order 0, or moving down and order = last on list, nothing to do
         if ((movingUp && (goal.goal.order == 0)) ||
             (!movingUp && (goal.goal.order == currentList.lastIndex))) {
                 Log.d("reOrderItem", "Nowhere for item ${goal.goal.title} to go (top or bottom of list already)")
-                deactivateButtons()
+                actionModeHandler.deactivateButtons()
                 return
             }
 

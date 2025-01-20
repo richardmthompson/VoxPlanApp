@@ -57,6 +57,7 @@ import com.voxplanapp.data.FULLBAR_MINS
 import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.model.ActionMode
 import com.voxplanapp.navigation.BottomNavigationBar
+import com.voxplanapp.navigation.ReorderButtons
 import com.voxplanapp.navigation.VoxPlanTopAppBar
 import com.voxplanapp.shared.SharedViewModel
 import com.voxplanapp.ui.constants.ActivatedColor
@@ -79,7 +80,9 @@ fun MainScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier
+            .padding(top = 8.dp)
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             Column {
                 if (mainUiState.breadcrumbs.isEmpty()) {
@@ -87,7 +90,8 @@ fun MainScreen(
                         totalMinutes = todayTotalTime,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(bottom=8.dp)
+                            .padding(horizontal=8.dp)
                     )
                 }
 
@@ -101,10 +105,10 @@ fun MainScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             ReorderButtons(
-                                onVUpClick = { mainViewModel.toggleUpActive() },
-                                onVDownClick = { mainViewModel.toggleDownActive() },
-                                onHUpClick = { mainViewModel.toggleHierarchyUp() },
-                                onHDownClick = { mainViewModel.toggleHierarchyDown() },
+                                onVUpClick = { mainViewModel.actionModeHandler.toggleUpActive() },
+                                onVDownClick = { mainViewModel.actionModeHandler.toggleDownActive() },
+                                onHUpClick = { mainViewModel.actionModeHandler.toggleHierarchyUp() },
+                                onHDownClick = { mainViewModel.actionModeHandler.toggleHierarchyDown() },
                                 currentMode = actionMode
                             )
                         }
@@ -122,6 +126,7 @@ fun MainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = it.calculateTopPadding())
+                .padding(horizontal = 10.dp)
         ) {
 
             BreadcrumbNavigation(
@@ -292,47 +297,5 @@ fun OneBar(fillAmount: Int) {
                     else Color(0xFFFF0000)
                 )
         )
-    }
-}
-
-@Composable
-fun ReorderButtons(
-    onVUpClick: () -> Unit,
-    onVDownClick: () -> Unit,
-    onHUpClick: () -> Unit,
-    onHDownClick: () -> Unit,
-    currentMode: ActionMode
-) {
-    Row(
-        horizontalArrangement = Arrangement.End
-    ) {
-        IconButton(onClick = onVUpClick) {
-            Icon(
-                imageVector = Icons.Default.ArrowCircleUp,
-                contentDescription = stringResource(id = R.string.reorder_upward),
-                tint = if (currentMode == ActionMode.VerticalUp) ActivatedColor else PrimaryColor
-            )
-        }
-        IconButton(onClick = onVDownClick) {
-            Icon(
-                imageVector = Icons.Default.ArrowCircleDown,
-                contentDescription = stringResource(id = R.string.reorder_downward),
-                tint = if (currentMode == ActionMode.VerticalDown) ActivatedColor else PrimaryColor
-            )
-        }
-        IconButton(onClick = onHUpClick) {
-            Icon(
-                imageVector = Icons.Default.ArrowCircleLeft,
-                contentDescription = stringResource(id = R.string.reorder_left),
-                tint = if (currentMode == ActionMode.HierarchyUp) ActivatedColor else PrimaryColor
-            )
-        }
-        IconButton(onClick = onHDownClick) {
-            Icon(
-                imageVector = Icons.Default.ArrowCircleRight,
-                contentDescription = stringResource(id = R.string.reorder_right),
-                tint = if (currentMode == ActionMode.HierarchyDown) ActivatedColor else PrimaryColor
-            )
-        }
     }
 }

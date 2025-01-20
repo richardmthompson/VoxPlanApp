@@ -12,15 +12,15 @@ data class Event(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val goalId: Int,
     val title: String,
-    val startTime: LocalTime,
-    val endTime: LocalTime,
+    val startTime: LocalTime? = null,
+    val endTime: LocalTime? = null,
     val startDate: LocalDate,
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
     val recurrenceInterval: Int? = 0,
     val recurrenceEndDate: LocalDate? = null,
-
-    // todo: Add color to event
-    val color: Int? = null
+    val color: Int? = null,
+    val scheduled: Boolean = false,
+    val order: Int = 0
 )
 
 enum class RecurrenceType {

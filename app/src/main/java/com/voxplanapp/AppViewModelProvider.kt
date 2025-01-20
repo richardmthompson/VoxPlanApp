@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.voxplanapp.navigation.NavigationViewModel
 import com.voxplanapp.shared.SharedViewModel
 import com.voxplanapp.ui.calendar.SchedulerViewModel
+import com.voxplanapp.ui.daily.DailyViewModel
 import com.voxplanapp.ui.focusmode.FocusViewModel
 import com.voxplanapp.ui.main.MainViewModel
 import com.voxplanapp.ui.goals.GoalEditViewModel
@@ -74,6 +75,15 @@ object AppViewModelProvider {
             ProgressViewModel(
                 todoRepository = voxPlanApplication().container.todoRepository,
                 timeBankRepository = voxPlanApplication().container.timeBankRepository,
+                quotaRepository = voxPlanApplication().container.quotaRepository
+            )
+        }
+
+        initializer {
+            DailyViewModel(
+                savedStateHandle = this.createSavedStateHandle(),
+                eventRepository = voxPlanApplication().container.eventRepository,
+                todoRepository = voxPlanApplication().container.todoRepository,
                 quotaRepository = voxPlanApplication().container.quotaRepository
             )
         }

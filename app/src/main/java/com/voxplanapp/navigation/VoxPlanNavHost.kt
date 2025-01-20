@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.voxplanapp.ui.calendar.DaySchedule
+import com.voxplanapp.ui.daily.DailyScreen
 import com.voxplanapp.ui.focusmode.FocusModeScreen
 import com.voxplanapp.ui.goals.GoalEditScreen
 import com.voxplanapp.ui.goals.ProgressScreen
@@ -29,7 +30,6 @@ fun VoxPlanNavHost(
     NavHost(
         navController = navController,
         startDestination = VoxPlanScreen.Main.route,
-        modifier = Modifier.padding(10.dp)
     ) {
 
         /* MAIN SCREEN */
@@ -123,6 +123,19 @@ fun VoxPlanNavHost(
         ) {
             FocusModeScreen(
                 onNavigateUp = { navController.navigateUp() }
+            )
+        }
+
+        /** DAILY SCREEN */
+        composable(
+            route = VoxPlanScreen.Daily.routeWithArgs,
+            arguments = listOf(navArgument(VoxPlanScreen.Daily.dateArg) {
+                type = NavType.StringType
+            })
+        ) {
+            DailyScreen(
+
+                modifier = modifier.padding(innerPadding)
             )
         }
 

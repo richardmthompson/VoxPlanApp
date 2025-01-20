@@ -1,5 +1,7 @@
 package com.voxplanapp.data
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -28,6 +30,19 @@ class QuotaRepository(private val quotaDao: QuotaDao) {
     fun getActiveDays(quota: Quota): List<DayOfWeek> {
         return quota.activeDays.mapIndexedNotNull { index, active ->
             if (active == '1') DayOfWeek.of(index + 1) else null
+        }
+    }
+
+
+    fun getAllActiveQuotas(date: LocalDate): Flow<List<Quota>> {
+        val dayOfWeek = date.dayOfWeek.value - 1 // Convert to 0-based index
+
+        return quotaDao.getAllQuotas().map { quotas ->
+            quotas.filter { quota ->
+                // Check if the quota is active for today by checking the corresponding bit
+                // in the activeDays string
+                quota.activeDays[dayOfWeek] == '1'
+            }
         }
     }
 }

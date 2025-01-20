@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -41,7 +42,17 @@ class SchedulerViewModel(
             // observe the _currentDate flow set up above
             _currentDate
                 // for each new date emitted (when date changes), switch to a new flow of events
-                .flatMapLatest { date ->  eventRepository.getEventsForDate(date) }
+                .flatMapLatest { date ->
+                    eventRepository.getEventsForDate(date)
+                        .map { events ->
+                            // filter for scheduled events with valid start-end times
+                            events.filter { event ->
+                                event.scheduled &&
+                                event.startTime != null &&
+                                event.endTime != null
+                            }
+                        }
+                }
                 // collect the new events into the state variable for events
                 .collect { events ->
                     _eventsForCurrentDate.value = events

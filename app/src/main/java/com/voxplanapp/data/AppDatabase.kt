@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @TypeConverters(Converters::class)
-@Database(entities = [TodoItem::class, Event::class, TimeBank::class, Quota::class], version = 10)
+@Database(entities = [TodoItem::class, Event::class, TimeBank::class, Quota::class], version = 11)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun todoDao(): TodoDao
     abstract fun eventDao(): EventDao
@@ -100,6 +100,31 @@ abstract class AppDatabase : RoomDatabase() {
                 """)
             }
         }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Make startTime and endTime nullable
+                database.execSQL("""CREATE TABLE IF NOT EXISTS Event_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    goalId INTEGER NOT NULL,
+                    title TEXT NOT NULL,
+                    startTime TEXT,
+                    endTime TEXT,
+                    startDate INTEGER NOT NULL,
+                    recurrenceType TEXT NOT NULL,
+                    recurrenceInterval INTEGER,
+                    recurrenceEndDate INTEGER,
+                    color INTEGER,
+                    scheduled INTEGER NOT NULL DEFAULT 0,
+                    `order` INTEGER NOT NULL DEFAULT 0
+                )""")
+                database.execSQL("INSERT INTO Event_new SELECT *, 0, 0 FROM Event")
+                database.execSQL("DROP TABLE Event")
+                database.execSQL("ALTER TABLE Event_new RENAME TO Event")
+            }
+        }
+
+
 
     }
 }

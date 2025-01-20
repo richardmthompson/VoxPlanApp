@@ -1,7 +1,5 @@
 package com.voxplanapp.navigation
 
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import java.time.LocalDate
 
 sealed class VoxPlanScreen(val route: String) {
@@ -37,9 +35,13 @@ sealed class VoxPlanScreen(val route: String) {
         fun createRouteFromEvent(eventId: Int): String = "$route?$eventIdArg=$eventId"
     }
 
-    object QuickSchedule : VoxPlanScreen("quick_schedule") {
-        const val goalIdArg = "goalId"
-        val routeWithArgs = "$route/{$goalIdArg}"
+    object Daily : VoxPlanScreen("daily") {
+        const val dateArg = "date"
+        val routeWithArgs = "$route/{$dateArg}"
+
+        fun createRouteWithDate(date: LocalDate = LocalDate.now()): String {
+            return "$route/${date}"
+        }
     }
 
 }

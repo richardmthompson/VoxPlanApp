@@ -22,6 +22,12 @@ interface EventDao {
     @Query("SELECT * FROM Event WHERE id = :eventId")
     suspend fun getEvent(eventId: Int): Event
 
+    @Query("SELECT * FROM Event WHERE startDate = :date AND scheduled = 0 ORDER BY `order`")
+    fun getUnscheduledEventsForDate(date: LocalDate): Flow<List<Event>>
+
+    @Query("UPDATE Event SET `order` = :newOrder WHERE id = :id")
+    suspend fun updateEventOrder(id: Int, newOrder: Int)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvent(event: Event)
 
