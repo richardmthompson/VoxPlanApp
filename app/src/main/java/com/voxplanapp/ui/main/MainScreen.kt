@@ -69,6 +69,7 @@ import com.voxplanapp.ui.constants.PrimaryColor
 fun MainScreen(
     navigateToGoalEdit: (Int) -> Unit,
     onEnterFocusMode: (Int) -> Unit,
+    onNavigateToDaily: (Int) -> Unit,
     modifier: Modifier = Modifier,
     mainViewModel: MainViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -150,6 +151,8 @@ fun MainScreen(
                 onItemDelete = mainViewModel::deleteItem,
                 onItemComplete = mainViewModel::completeItem,
                 onItemReorder = mainViewModel::reorderItem,
+                onAddToDaily = { goal -> mainViewModel.addToDaily(goal, onNavigateToDaily)
+                },
                 overlappingElementsHeight = OverlappingHeight,
                 // change below to moveActive = vUp, vDown, hUp, hDown
                 actionMode = actionMode,

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Delete
@@ -63,6 +64,7 @@ fun GoalItem(
     onSubGoalsClick: (GoalWithSubGoals) -> Unit,
     onItemDelete: (GoalWithSubGoals) -> Unit,
     onEnterFocusMode: (Int) -> Unit,
+    onAddToDaily: (TodoItem) -> Unit,
     actionMode: ActionMode,
     onItemReorder: (GoalWithSubGoals) -> Unit
 ) {
@@ -146,6 +148,17 @@ fun GoalItem(
                     )
 
                     HasSubGoalsIcon(goal = goal, onSubGoalsClick = onSubGoalsClick)
+
+                    IconButton(
+                        onClick = { onAddToDaily(goal.goal) },
+                        modifier = Modifier.size(SubGoalItemIconSize)
+                    ) {
+                        Icon(
+                            Icons.Default.AddTask,
+                            contentDescription = "Add to Daily Tasks",
+                            tint = TodoItemIconColor.copy(alpha = if (goal.goal.completedDate != null) 0.5f else 1f)
+                        )
+                    }
 
                     FocusModeIcon(goal = goal, onEnterFocusMode = onEnterFocusMode)
                     //TickBoxIcon(goal = goal)

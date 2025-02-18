@@ -37,11 +37,18 @@ sealed class VoxPlanScreen(val route: String) {
 
     object Daily : VoxPlanScreen("daily") {
         const val dateArg = "date"
-        val routeWithArgs = "$route/{$dateArg}"
+        const val newEventIdArg = "newEventId"
+        val routeWithArgs = "$route/{$dateArg}?$newEventIdArg={$newEventIdArg}"
 
-        fun createRouteWithDate(date: LocalDate = LocalDate.now()): String {
-            return "$route/${date}"
+        fun createRouteWithDate(
+            date: LocalDate = LocalDate.now(),
+            newEventId: Int? = null
+        ): String {
+            return if (newEventId != null) {
+                "$route/${date}?$newEventIdArg=$newEventId"
+            } else {
+                "$route/${date}"
+            }
         }
     }
-
 }

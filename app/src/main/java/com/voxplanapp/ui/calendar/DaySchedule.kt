@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Stream
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -88,7 +89,7 @@ fun DaySchedule(
     modifier: Modifier = Modifier,
     onEnterFocusMode: (Event) -> Unit,
     viewModel: SchedulerViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    ) {
+) {
     val hourHeight = 48.dp      // the size of the hourly intervals on screen
     val startHour = 1       // the hour of the day the schedule starts
     val endHour = 24        // when it ends
@@ -102,6 +103,27 @@ fun DaySchedule(
     // if the date or the event list change, we need to recompose this screen
     val date by viewModel.currentDate.collectAsState()
     val events by viewModel.eventsForCurrentDate.collectAsState()
+
+    val showDeleteParentDialog by viewModel.showDeleteParentDialog.collectAsState()
+
+// In the screen content...
+    showDeleteParentDialog?.let { parentId ->
+        AlertDialog(
+            onDismissRequest = { viewModel.confirmDeleteChildOnly(event) },
+            title = { Text("Delete Event") },
+            text = { Text("Would you also like to delete the parent daily task?") },
+            confirmButton = {
+                Button(onClick = { viewModel.confirmDeleteWithParent(event) }) {
+                    Text("Delete Both")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { viewModel.confirmDeleteChildOnly(event) }) {
+                    Text("Delete Only This Event")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = modifier

@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @TypeConverters(Converters::class)
-@Database(entities = [TodoItem::class, Event::class, TimeBank::class, Quota::class], version = 11)
+@Database(entities = [TodoItem::class, Event::class, TimeBank::class, Quota::class], version = 13)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun todoDao(): TodoDao
     abstract fun eventDao(): EventDao
@@ -124,7 +124,66 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+            ALTER TABLE Event 
+            ADD COLUMN quotaDuration INTEGER
+        """)
+                database.execSQL("""
+            ALTER TABLE Event 
+            ADD COLUMN scheduledDuration INTEGER
+        """)
+                database.execSQL("""
+            ALTER TABLE Event 
+            ADD COLUMN completedDuration INTEGER
+        """)
+            }
+        }
 
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new column
+                database.execSQL(
+                    "ALTER TABLE Event ADD COLUMN parentDailyId INTEGER"
+                )
+
+                // Remove scheduled column
+                database.execSQL("""
+            CREATE TABLE IF NOT EXISTS Event_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                goalId INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                startTime TEXT,
+                endTime TEXT,
+                startDate INTEGER NOT NULL,
+                recurrenceType TEXT NOT NULL,
+                recurrenceInterval INTEGER,
+                recurrenceEndDate INTEGER,
+                color INTEGER,
+                `order` INTEGER NOT NULL DEFAULT 0,
+                quotaDuration INTEGER,
+                scheduledDuration INTEGER,
+                completedDuration INTEGER,
+                parentDailyId INTEGER
+            )
+        """)
+
+                // Copy data, excluding scheduled column
+                database.execSQL("""
+            INSERT INTO Event_new 
+            SELECT id, goalId, title, startTime, endTime, startDate, 
+                   recurrenceType, recurrenceInterval, recurrenceEndDate, 
+                   color, `order`, quotaDuration, scheduledDuration, 
+                   completedDuration, NULL
+            FROM Event
+        """)
+
+                // Drop old table and rename new one
+                database.execSQL("DROP TABLE Event")
+                database.execSQL("ALTER TABLE Event_new RENAME TO Event")
+            }
+        }
 
     }
 }

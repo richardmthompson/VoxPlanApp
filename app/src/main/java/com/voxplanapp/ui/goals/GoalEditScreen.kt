@@ -176,6 +176,7 @@ fun GoalEntryBody(
             .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        /* don't think we need to know the goal id tbh
         ItemIdRow(
             goalId = goal.id,
             modifier = Modifier
@@ -183,6 +184,7 @@ fun GoalEntryBody(
                 .background(Color.LightGray)
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         )
+         */
 
         /* show position of goal in hierarchy */
         GoalHierarchyDisplay(
@@ -210,7 +212,7 @@ fun GoalEntryBody(
                 .border(width = 1.dp, ToolbarBorderColor, shape = RoundedCornerShape(MediumDp))
             ) {
                 Text(
-                    text = "Scheduling details",
+                    text = "Schedule",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = modifier.padding(start = 4.dp, top = 4.dp)
@@ -228,22 +230,24 @@ fun GoalEntryBody(
                     modifier = modifier.padding(start = 4.dp, top = 0.dp)
                 )
 
+                /*
                 FrequencySelector(
                     frequency = goal.frequency,
                     onFrequencyChanged = { onValueChange("frequency", it) },
                     modifier = modifier.padding(start = 4.dp, top = 0.dp)
                 )
+                 */
 
                 Row (modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Button(
                         onClick = { onNavigateToFocusMode(goal.id) }
                     ) {
-                        Text("Focus Mode!")
+                        Text("Focus NOW!")
                     }
                     Button(
                         onClick = { onScheduleClick() },
-                    ) { Text("Schedule!") }
+                    ) { Text("Schedule NOW!") }
                 }
             }
 
@@ -255,6 +259,7 @@ fun GoalEntryBody(
                 onRemoveQuota = onRemoveQuota
             )
 
+            /*  notes: commented for now for ui streamlining can re introduce later
             OutlinedTextField(
                 value = goal.notes ?: "",
                 onValueChange = { onValueChange("notes", it) },
@@ -265,7 +270,9 @@ fun GoalEntryBody(
                 singleLine = false
             )
 
-            /* isdone */
+             */
+
+            /* isdone
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -280,6 +287,7 @@ fun GoalEntryBody(
                     modifier = Modifier.padding(start=8.dp)
                 )
             }
+            */
         }
 
         /* save button */
@@ -315,7 +323,7 @@ fun GoalHierarchyDisplay(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "Goal Hierarchy - ${if (goal.parentId != null) "SubGoal" else "TopLevelGoal"}:",
+            text = if (goal.parentId != null) "Goal Hierarchy for subGoal:" else "Top Level Goal:",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -489,13 +497,44 @@ fun TimeUnit(
     onValueChange: (Int) -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onValueChange(if (value < range.last) value + range.step else range.first) }) {
-            Icon(Icons.Default.KeyboardArrowUp, "Increase")
+        IconButton(onClick = {
+            val newValue = if (range.step == 15) {
+                // For minutes: first snap to nearest 15, then decrement
+                val currentSnapped = ((value + 7) / 15) * 15
+                if (currentSnapped == value) {
+                    // Already snapped, so decrement
+                    (value - 15).coerceIn(range.first, range.last)
+                } else {
+                    // Snap to nearest 15
+                    currentSnapped.coerceIn(range.first, range.last)
+                }
+            } else {
+                // For hours: simple decrement with wraparound
+                if (value > range.first) value - range.step else range.last
+            }
+            onValueChange(newValue)
+        }) {
+            Icon(Icons.Default.KeyboardArrowDown, "Decrease")
         }
         Text(value.toString().padStart(2, '0'))
-        IconButton(onClick = { onValueChange(if (value > range.first) value - range.step else range.last) }) {
-            Icon(Icons.Default.KeyboardArrowDown, "Decrease")
+        IconButton(onClick = {
+            val newValue = if (range.step == 15) {
+                // For minutes: first snap to nearest 15, then increment
+                val currentSnapped = ((value + 7) / 15) * 15
+                if (currentSnapped == value) {
+                    // Already snapped, so increment
+                    (value + 15).coerceIn(range.first, range.last)
+                } else {
+                    // Snap to nearest 15
+                    currentSnapped.coerceIn(range.first, range.last)
+                }
+            } else {
+                // For hours: simple increment with wraparound
+                if (value < range.last) value + range.step else range.first
+            }
+            onValueChange(newValue)
+        }) {
+            Icon(Icons.Default.KeyboardArrowUp, "Increase")
         }
     }
 }
-

@@ -29,6 +29,7 @@ fun GoalListContainer(
     onItemDelete: (GoalWithSubGoals) -> Unit = {},
     onItemComplete: (TodoItem) -> Unit,
     onItemReorder: (GoalWithSubGoals) -> Unit,
+    onAddToDaily: (TodoItem) -> Unit,
     actionMode: ActionMode,
     overlappingElementsHeight: Dp = 0.dp,
     contentPadding: PaddingValues = PaddingValues(0.dp)
@@ -52,6 +53,7 @@ fun GoalListContainer(
                     onItemComplete = onItemComplete,
                     onItemReorder = onItemReorder,
                     onEnterFocusMode = onEnterFocusMode,
+                    onAddToDaily = onAddToDaily,
                     actionMode = actionMode
                 )
             }

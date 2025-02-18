@@ -1,9 +1,7 @@
 package com.voxplanapp.data
 
-import androidx.compose.ui.graphics.Color
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.voxplanapp.ui.constants.EventBoxColor
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -19,8 +17,14 @@ data class Event(
     val recurrenceInterval: Int? = 0,
     val recurrenceEndDate: LocalDate? = null,
     val color: Int? = null,
-    val scheduled: Boolean = false,
-    val order: Int = 0
+    val order: Int = 0,
+    // existing fields...
+    val quotaDuration: Int? = null,     // in minutes, from the quota
+    val scheduledDuration: Int? = null,  // in minutes, calculated from schedule times
+    val completedDuration: Int? = null,   // in minutes, from time bank entries
+    // id of the parent daily.  Dailies are all parents, and children are scheduled events.
+    // thus, this field identifies whether this is a Daily or a Scheduled Event - as we share this data structure for both.
+    val parentDailyId: Int? = null
 )
 
 enum class RecurrenceType {

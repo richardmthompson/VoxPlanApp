@@ -27,6 +27,9 @@ val ToolbarBorderColor = Color(0xFFffddb0)
 val ToolbarIconColor = Color(0xFF424242)
 val TopAppBarBgColor = TertiaryColor
 
+val TitlebarColor = Color(0xFFffddb0)
+val TitlebarBorderColor = Color(0xFFF8B758)
+
 val TodoItemBackgroundColor = PrimaryLightColor
 val TodoItemIconColor = PrimaryColor
 val TodoItemTextColor = PrimaryColor

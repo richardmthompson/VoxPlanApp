@@ -159,7 +159,7 @@ class GoalEditViewModel(
         }
     }
 
-    fun scheduleGoal(date: LocalDate) {
+    suspend fun scheduleGoal(date: LocalDate) {
 
         Log.d("scheduleGoal", "scheduling goal ${goalUiState.goal?.goal?.title} on date $date at time ${goalUiState.goal?.goal?.preferredTime}")
 
@@ -172,23 +172,31 @@ class GoalEditViewModel(
         val startTime = goal.preferredTime ?: LocalTime.of(9,0)    // default 9am
         val duration = goal.estDurationMins?.toLong() ?:60
 
-        val event = Event(
+        // parent Event is the daily, any scheduled time details are inherited general guidelines from the goal, and not specific to a scheduled event.
+        val parentDaily = Event(
             goalId = goal.id,
             title = goal.title,
+            startDate = date,
+            quotaDuration = goal.estDurationMins,
+            scheduledDuration = goal.estDurationMins,
+            completedDuration = 0,
+            recurrenceType = goal.frequency
+        )
+        val parentId = eventRepository.insertEvent(parentDaily)
+
+        // Create scheduled child event
+        val childEvent = Event(
+            goalId = goal.id,
+            title = goal.title,
+            parentDailyId = parentId,
             startTime = startTime,
             endTime = startTime.plusMinutes(duration),
             startDate = date,
             recurrenceType = goal.frequency,
-            recurrenceInterval = 1,
-            recurrenceEndDate = null,
-            color = 0
+            quotaDuration = goal.estDurationMins
         )
+        eventRepository.insertEvent(childEvent)
 
-        viewModelScope.launch {
-            Log.d("scheduleGoal", "inserting Event into event Repository...")
-            eventRepository.insertEvent(event)
-            Log.d("scheduleGoal", "inserted successfully!")
-        }
-
+        Log.d("scheduleGoal", "inserted parent daily and child event successfully!")
     }
 }

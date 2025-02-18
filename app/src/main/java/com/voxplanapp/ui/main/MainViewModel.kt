@@ -7,6 +7,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.voxplanapp.R
+import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.FULLBAR_MINS
 import com.voxplanapp.data.GoalWithSubGoals
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -114,6 +116,21 @@ class MainViewModel (
                 ?: mainUiState.value.goalList.find { it.goal.id == goal.goal.parentId }
             }
         sharedViewModel.navigateToSubGoal(goal, parentGoal)
+    }
+
+    fun addToDaily(goal: TodoItem, onEventCreated: (Int) -> Unit) {
+        viewModelScope.launch {
+            val event = Event(
+                goalId = goal.id,
+                title = goal.title,
+                startDate = LocalDate.now(),
+                quotaDuration = goal.estDurationMins,     // if this value is null, we carry that over to the dailies screen too.
+                scheduledDuration = 0,
+                completedDuration = 0
+            )
+            val newEventId = eventRepository.insertEvent(event)
+            onEventCreated(newEventId)
+        }
     }
 
     fun navigateUp() {

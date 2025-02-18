@@ -1,5 +1,6 @@
 package com.voxplanapp.ui.daily
 
+import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -22,12 +23,14 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 
 data class DailyUiState(
     val date: LocalDate = LocalDate.now(),
     val dailyTasks: List<Event> = emptyList(),
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val eventNeedingDuration: Int? = null       // holds event Id when passed from
 )
 
 class DailyViewModel(
@@ -41,18 +44,25 @@ class DailyViewModel(
     val actionMode: State<ActionMode> = _actionMode
     val actionModeHandler = ActionModeHandler(_actionMode)
 
+    private val newEventId: Int? = savedStateHandle.get<String>(VoxPlanScreen.Daily.newEventIdArg)?.toIntOrNull()
+
     private val _uiState = MutableStateFlow(DailyUiState(
         date = savedStateHandle.get<String>(VoxPlanScreen.Daily.dateArg)?.let {
             LocalDate.parse(it)
-        } ?: LocalDate.now()
+        } ?: LocalDate.now(),
+        eventNeedingDuration = newEventId       // pass new event Id into ui state so we can pop the duration dialog on entry
     ))
     val uiState: StateFlow<DailyUiState> = _uiState.asStateFlow()
+
+    // state management for deletion confirmation dialog, used to prevent orphaned Events in Scheduler when parent daily is deleted
+    private val _showDeleteConfirmation = MutableStateFlow<Event?>(null)
+    val showDeleteConfirmation: StateFlow<Event?> = _showDeleteConfirmation.asStateFlow()
 
     init {
         viewModelScope.launch {
             snapshotFlow { _uiState.value.date }
                 .flatMapLatest { date ->
-                    eventRepository.getUnscheduledEventsForDate(date)
+                    eventRepository.getDailiesForDate(date)
                 }
                 .collect { events ->
                     _uiState.value = _uiState.value.copy(
@@ -61,6 +71,8 @@ class DailyViewModel(
                     )
                 }
         }
+        Log.d("Daily", "init: event ID found as ${uiState.value.eventNeedingDuration}")
+
     }
 
     fun updateDate(newDate: LocalDate) {
@@ -113,7 +125,9 @@ class DailyViewModel(
                         goalId = quota.goalId,
                         title = goal.title,
                         startDate = date,
-                        scheduled = false,
+                        quotaDuration = quota.dailyMinutes,     // add quota duration so we can show our duration display boxes
+                        scheduledDuration = 0,
+                        completedDuration = 0
                         // Other fields with default/null values
                     )
                     eventRepository.insertEvent(event)
@@ -124,18 +138,53 @@ class DailyViewModel(
 
     fun scheduleTask(task: Event, startTime: LocalTime, endTime: LocalTime) {
         viewModelScope.launch {
+            val duration = ChronoUnit.MINUTES.between(startTime, endTime).toInt()
+
+            // create new scheduled event block
             val scheduledTask = task.copy(
                 startTime = startTime,
                 endTime = endTime,
-                scheduled = true
+                parentDailyId = task.id,
+                quotaDuration = duration
             )
-            eventRepository.updateEvent(scheduledTask)
+            // update the existing - parent - task with the scheduled duration
+            val updatedParent = task.copy(
+                scheduledDuration = (task.scheduledDuration ?: 0) + duration
+            )
+
+            eventRepository.insertEvent(scheduledTask)
+            eventRepository.updateEvent(updatedParent)
+
         }
     }
 
-    fun deleteTask(task: Event) {
+    fun setTaskDuration(task: Event, duration: Int) {
         viewModelScope.launch {
-            eventRepository.deleteEvent(task)
+            val updatedEvent = task.copy(
+                quotaDuration = duration,
+            )
+            eventRepository.updateEvent(updatedEvent)
         }
+
+    }
+
+    fun deleteTask(task: Event) {
+        _showDeleteConfirmation.value = task
+    }
+
+    fun confirmDelete(task: Event) {
+        viewModelScope.launch {
+            // Get all child events
+            val childEvents = eventRepository.getEventsWithParentId(task.id).first()
+            // Delete all children first
+            childEvents.forEach { eventRepository.deleteEvent(it.id) }
+            // Then delete the parent
+            eventRepository.deleteEvent(task.id)
+            _showDeleteConfirmation.value = null
+        }
+    }
+
+    fun cancelDelete() {
+        _showDeleteConfirmation.value = null
     }
 }

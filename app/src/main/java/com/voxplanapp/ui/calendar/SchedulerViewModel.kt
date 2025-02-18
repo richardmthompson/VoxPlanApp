@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.navigation.VoxPlanScreen
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+// flatmaplatest requires the following opt-in for some unknown reason.
+@OptIn(ExperimentalCoroutinesApi::class)
 class SchedulerViewModel(
     savedStateHandle: SavedStateHandle,
     private val eventRepository: EventRepository
@@ -35,6 +38,10 @@ class SchedulerViewModel(
     val _eventsForCurrentDate = MutableStateFlow<List<Event>>(emptyList())
     val eventsForCurrentDate: StateFlow<List<Event>> = _eventsForCurrentDate
 
+    // used to show the delete parent dialog (do you want to delete parent daily?) when the only scheduled child event of a parent daily is deleted
+    private val _showDeleteParentDialog = MutableStateFlow<Event?>(null)
+    val showDeleteParentDialog: StateFlow<Event?> = _showDeleteParentDialog.asStateFlow()
+
     init {
         // set up a stateFlow of today's Events to feed to the Ui for printing
 
@@ -47,9 +54,11 @@ class SchedulerViewModel(
                         .map { events ->
                             // filter for scheduled events with valid start-end times
                             events.filter { event ->
-                                event.scheduled &&
                                 event.startTime != null &&
-                                event.endTime != null
+                                event.endTime != null &&
+                                // we check for parent daily id.  if it has a parent, it must be a scheduled event.
+                                // the parent daily refers to the daily, that itself should not appear in the schedule.
+                                event.parentDailyId != null
                             }
                         }
                 }
@@ -92,9 +101,41 @@ class SchedulerViewModel(
     }
 
     fun deleteEvent(event: Event) {
+        // We know this is a child event
         viewModelScope.launch {
-            eventRepository.deleteEvent(event)
+            // Get all siblings of this event
+            val siblings = eventRepository.getEventsWithParentId(event.parentDailyId!!)
+                .first()
+                .filter { it.id != event.id }
+
+            if (siblings.isEmpty()) {
+                // No other scheduled events for this daily
+                _showDeleteParentDialog.value = event.parentDailyId
+            } else {
+                // Has siblings, just delete this event
+                eventRepository.deleteEvent(event.id)
+            }
         }
     }
 
+    fun confirmDeleteWithParent(event: Event) {
+        viewModelScope.launch {
+            eventRepository.deleteEvent(event.id)  // Delete child event
+            event.parentDailyId?.let { parentId ->
+                eventRepository.deleteEvent(parentId)  // Delete parent daily
+            }
+            _showDeleteParentDialog.value = null
+        }
+    }
+
+    fun confirmDeleteChildOnly(event: Event) {
+        viewModelScope.launch {
+            eventRepository.deleteEvent(event.id)
+            _showDeleteParentDialog.value = null
+        }
+    }
+
+    fun cancelDelete() {
+        _showDeleteParentDialog.value = null
+    }
 }

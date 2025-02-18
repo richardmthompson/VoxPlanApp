@@ -45,6 +45,12 @@ fun VoxPlanNavHost(
                 onEnterFocusMode = { goalId ->
                         navController.navigate("${VoxPlanScreen.FocusMode.createRouteFromGoal(goalId)}")
                     },
+                onNavigateToDaily = { eventId ->
+                    navController.navigate(VoxPlanScreen.Daily.createRouteWithDate(
+                        date = LocalDate.now(),
+                        newEventId = eventId
+                    ))
+                },
                 modifier = modifier.padding(innerPadding)
             )
         }
@@ -129,12 +135,18 @@ fun VoxPlanNavHost(
         /** DAILY SCREEN */
         composable(
             route = VoxPlanScreen.Daily.routeWithArgs,
-            arguments = listOf(navArgument(VoxPlanScreen.Daily.dateArg) {
-                type = NavType.StringType
-            })
+            arguments = listOf(
+                navArgument(VoxPlanScreen.Daily.dateArg) {
+                    type = NavType.StringType
+                },
+                navArgument(VoxPlanScreen.Daily.newEventIdArg) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
         ) {
             DailyScreen(
-
                 modifier = modifier.padding(innerPadding)
             )
         }

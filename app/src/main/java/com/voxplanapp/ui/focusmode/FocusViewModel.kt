@@ -89,8 +89,10 @@ class FocusViewModel(
 
     /* functions relating to timed tasks */
 
+    // this runs upon completion of a revolution of the timer clock
     fun resetTimer() {
-        // this is an init function only for now
+
+        // initialise timer variables for a fresh start
         _timerJob.value?.cancel()
         _timerJob.value = null
         _discreteTaskJob.value?.cancel()
@@ -103,9 +105,12 @@ class FocusViewModel(
             clockProgress = 0f,
             currentTheme = ColorScheme.REST,
             currentTaskLevel = DiscreteTaskLevel.EASY,
+            // we set the end time so that the subsequently scheduled event records actual work done, not simply presence on focus screen
+            endTime = LocalTime.now()
         )
     }
 
+    // this is run when we click the start button.  it starts from scratch, or from pause.
     fun startTimer() {
         var startTime: Long = 0L
 
@@ -418,7 +423,7 @@ class FocusViewModel(
       */
 
     fun onExit() {
-        // we may need to modify the 
+        createOrUpdateEvent()
     }
 
     private fun createOrUpdateEvent(): Boolean {
