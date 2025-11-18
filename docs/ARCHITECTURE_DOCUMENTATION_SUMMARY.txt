@@ -1,0 +1,674 @@
+================================================================================
+VOXPLANAPP ARCHITECTURE DOCUMENTATION - COMPREHENSIVE SUMMARY
+Generated: November 10, 2025
+================================================================================
+
+MISSION COMPLETED: Comprehensive documentation of VoxPlanApp architecture,
+state management, data flow, and architectural patterns.
+
+================================================================================
+DOCUMENTS GENERATED
+================================================================================
+
+PRIMARY DOCUMENTS (This Mission):
+1. ARCHITECTURE.md (40KB, 1216 lines)
+   - Complete state management architecture (all 8 ViewModels)
+   - Detailed data layer with repository patterns
+   - 5 reactive programming patterns with code examples
+   - Application lifecycle and initialization
+   - Data flow diagrams (4 major flows)
+   - Complete dependency injection graph
+   - 6 architectural patterns explained
+   - Best practices observed
+   - Complete file structure with all 51 Kotlin files
+
+2. ARCHITECTURE_QUICK_REFERENCE.md (11KB)
+   - At-a-glance summary tables
+   - Core components overview
+   - 4 key state management patterns with code
+   - 3 main data flow summaries
+   - Key features implementations
+   - Navigation architecture
+   - Error handling strategy
+   - Common issues and solutions
+   - Performance considerations
+
+3. DOCUMENTATION_INDEX.md (8.1KB)
+   - Index and cross-references for both documents
+   - Topic-based navigation guide
+   - Reading recommendations by use case
+   - Quick facts table
+   - File path reference
+   - Key insights and design decisions
+
+SUPPORTING DOCUMENTS (Previously generated):
+- FEATURE_DOCUMENTATION.md (32KB) - Feature breakdown
+- FEATURE_DIAGRAMS.md (24KB) - Visual diagrams
+- DATA_MODELS_DOCUMENTATION.md (36KB) - Data models
+- VOXPLAN_UI_ARCHITECTURE.md (34KB) - UI layer
+- And 5 more supporting documents
+
+TOTAL DOCUMENTATION: ~270KB across 14 files
+
+================================================================================
+ARCHITECTURE OVERVIEW
+================================================================================
+
+PATTERN: MVVM with Manual Dependency Injection
+STATE MANAGEMENT: StateFlow + Compose State (Hybrid Approach)
+DATABASE: Room (SQLite) - Version 13
+REACTIVE: Kotlin Flow + Coroutines
+UI FRAMEWORK: Jetpack Compose
+NAVIGATION: Type-safe Sealed Class Routes
+
+KEY STATISTICS:
+- 51 Kotlin source files
+- 8 ViewModels (6 feature + 2 shared)
+- 4 Repositories
+- 4 Database entities + 4 DAOs
+- 6 Application screens
+- 4 Bottom navigation tabs
+- Max goal hierarchy depth: 3 levels
+- 13 database migrations
+
+================================================================================
+STATE MANAGEMENT BREAKDOWN
+================================================================================
+
+1. SHARED STATE (Cross-screen)
+   - SharedViewModel: Breadcrumb navigation, goal processing
+   - NavigationViewModel: Bottom nav bar selection
+   - ActionMode: Goal/event reordering state
+
+2. FEATURE STATE (Screen-specific)
+   - MainViewModel:
+     * mainUiState: StateFlow<MainUiState> (combined flow)
+     * todayTotalTime: StateFlow<Int>
+     * actionMode: State<ActionMode> (Compose State)
+   
+   - SchedulerViewModel:
+     * currentDate: StateFlow<LocalDate>
+     * eventsForCurrentDate: StateFlow<List<Event>>
+     * showDeleteParentDialog: StateFlow<Event?>
+   
+   - FocusViewModel:
+     * focusUiState: MutableState<FocusUiState> (Compose State)
+     * timerSettingsState: MutableState<TimerSettingsState>
+     * _timerJob: StateFlow<Job?> (for job management)
+   
+   - DailyViewModel:
+     * uiState: StateFlow<DailyUiState>
+     * showDeleteConfirmation: StateFlow<Event?>
+   
+   - GoalEditViewModel:
+     * goalUiState: MutableState<GoalUiState>
+   
+   - ProgressViewModel:
+     * uiState: StateFlow<ProgressUiState>
+
+3. REACTIVE PATTERNS
+   - Pattern 1: Combined StateFlow (MainViewModel)
+   - Pattern 2: flatMapLatest for date-driven state (SchedulerViewModel)
+   - Pattern 3: snapshotFlow for state changes (DailyViewModel)
+   - Pattern 4: Flow with map transformations (MainViewModel time total)
+   - Pattern 5: Simple Flow.first() (ProgressViewModel)
+
+================================================================================
+DATA LAYER ARCHITECTURE
+================================================================================
+
+REPOSITORY PATTERN (Single DAO per Repository):
+1. TodoRepository
+   - getAllTodos(): Flow<List<TodoItem>>
+   - getRootTodos(): List<TodoItem> (blocking)
+   - insert/update/delete operations
+   - Recursive deleteItemAndDescendants()
+   - Transaction support for batch updates
+
+2. EventRepository
+   - getDailiesForDate(): Flow<List<Event>> (parentDailyId IS NULL)
+   - getScheduledBlocksForDate(): Flow<List<Event>> (parentDailyId NOT NULL)
+   - insert/update/delete operations
+   - Event retrieval with filtering
+
+3. TimeBankRepository
+   - addTimeBankEntry(): Track time accrual
+   - getEntriesForDate/DateRange(): Flow queries
+   - getTotalTimeForDate(): Flow<Int?> for daily aggregation
+
+4. QuotaRepository
+   - getQuotaForGoal(): Flow<Quota?>
+   - getAllActiveQuotas(date): Flow<List<Quota>> - Filters by active days
+   - insert/update/delete operations
+
+DATA ENTITIES:
+1. TodoItem (Goals/Tasks)
+   - Hierarchical (parentId nullable)
+   - Order-based (display order)
+   - Completion tracking (completedDate)
+   - Tree expansion state (expanded boolean)
+
+2. Event (Dailies + Scheduled Blocks)
+   - Dual purpose: Daily (parentDailyId=null) or Scheduled (parentDailyId=set)
+   - Time tracking (quotaDuration, scheduledDuration, completedDuration)
+   - Recurrence support (RecurrenceType enum)
+
+3. TimeBank (Time accrual)
+   - Per goal per date tracking
+   - Duration in minutes
+   - Used by ProgressViewModel for weekly summaries
+
+4. Quota (Goal quotas)
+   - Daily minute targets
+   - Active days encoding (7-char string "1111100")
+   - Foreign key to TodoItem with CASCADE delete
+
+COMPOSITE MODELS:
+- GoalWithSubGoals: Recursive structure for hierarchical display
+
+DATABASE CONVERTERS:
+- LocalTime <-> String
+- LocalDate <-> Long (epoch day)
+
+DATABASE MIGRATIONS: 13 versions with careful migration path
+
+================================================================================
+DEPENDENCY INJECTION STRUCTURE
+================================================================================
+
+SERVICE LOCATOR PATTERN:
+VoxPlanApplication
+  └─ container: AppDataContainer (implements AppContainer interface)
+      ├─ database: AppDatabase (singleton, lazy)
+      ├─ todoRepository: TodoRepository (lazy, wraps todoDao)
+      ├─ eventRepository: EventRepository (lazy, wraps eventDao)
+      ├─ timeBankRepository: TimeBankRepository (lazy, wraps timeBankDao)
+      ├─ quotaRepository: QuotaRepository (lazy, wraps quotaDao)
+      └─ soundPlayer: SoundPlayer (lazy, manages ExoPlayer)
+
+VIEWMODEL FACTORY:
+AppViewModelProvider.Factory (viewModelFactory DSL)
+  ├─ SharedViewModel (singleton, injected into multiple VMs)
+  ├─ MainViewModel (repositories + shared + sound + dispatcher)
+  ├─ SchedulerViewModel (saved state handle + event repo)
+  ├─ FocusViewModel (multiple repos + shared + sound)
+  ├─ DailyViewModel (event, todo, quota repos + saved state)
+  ├─ GoalEditViewModel (shared + repos + saved state)
+  ├─ ProgressViewModel (todo, time bank, quota repos)
+  └─ NavigationViewModel (no dependencies)
+
+SCOPES:
+- Application: Database, Repositories, SoundPlayer (singletons)
+- Activity: Navigation controller
+- Screen: ViewModel with viewModelScope (auto-cleanup)
+- Shared: SharedViewModel injected into multiple screens
+
+NO REFLECTION: All DI via constructor injection and manual factory
+
+================================================================================
+KEY ARCHITECTURAL PATTERNS
+================================================================================
+
+1. UNIDIRECTIONAL DATA FLOW
+   Data (DB) → Repository → ViewModel → StateFlow → UI → User Action → 
+   ViewModel Handler → Repository Write → DB
+
+2. SINGLE SOURCE OF TRUTH
+   MainViewModel.mainUiState = combine(todos, breadcrumbs)
+   All updates go through StateFlow emission
+
+3. HIERARCHICAL GOAL PROCESSING
+   SharedViewModel.processGoals() (recursive, max depth 3)
+   GoalWithSubGoals (recursive data class)
+   Breadcrumb trail for navigation
+
+4. PARENT-CHILD EVENT RELATIONSHIPS
+   Event.parentDailyId: null = Daily, set = Scheduled block
+   DAO filters: parentDailyId IS NULL vs IS NOT NULL
+   Cascading deletes via Foreign Key
+
+5. QUOTA ACTIVE DAYS ENCODING
+   String of 7 chars: "1111100" (Mon-Fri)
+   Index = dayOfWeek.value - 1
+   Binary filtering: quota.activeDays[index] == '1'
+
+6. ACTION MODE REORDERING
+   5 states: Normal, VerticalUp, VerticalDown, HierarchyUp, HierarchyDown
+   ActionModeHandler manages mutations
+   Transaction updates for atomic changes
+
+7. TRANSACTION MANAGEMENT
+   @Transaction suspend fun updateItemsInTransaction()
+   Atomic group updates for consistency
+
+8. ERROR HANDLING
+   Try-catch in init blocks
+   Loading + Error boolean in UiState
+   User-friendly error messages
+
+================================================================================
+REACTIVE PROGRAMMING PATTERNS
+================================================================================
+
+PATTERN 1: Combined StateFlow (MainViewModel)
+Problem: Need to combine two data sources with transformations
+Solution: combine() + stateIn() with WhileSubscribed strategy
+Code: combine(getAllTodos(), breadcrumbs) { todos, crumbs -> ... }
+
+PATTERN 2: Date-Driven Reactivity (SchedulerViewModel)
+Problem: Need to react to date changes and re-query events
+Solution: flatMapLatest() on date StateFlow
+Code: _currentDate.flatMapLatest { date -> getEventsForDate(date) }
+
+PATTERN 3: Compose State Changes (DailyViewModel)
+Problem: Need to convert MutableState changes to Flow
+Solution: snapshotFlow() to create Flow from Compose State
+Code: snapshotFlow { _uiState.value.date }.flatMapLatest { ... }
+
+PATTERN 4: Flow Transformations (MainViewModel time total)
+Problem: Need null safety and side effects (sound)
+Solution: map() for transformation + onEach() for side effects
+Code: getTotalTimeForDate().map { it ?: 0 }.onEach { playSoundIfMilestone() }
+
+PATTERN 5: Simple Blocking Reads (ProgressViewModel)
+Problem: Need data only once at init time
+Solution: Flow.first() as suspend function
+Code: val quotas = quotaRepository.getAllQuotas().first()
+
+ERROR HANDLING: Try-catch in viewModelScope.launch {} blocks
+LOADING STATES: Explicit isLoading boolean in UiState
+
+================================================================================
+APPLICATION LIFECYCLE
+================================================================================
+
+STARTUP:
+1. MainActivity.onCreate() → setContent { VoxPlanApp() }
+2. VoxPlanApplication.onCreate() → Initialize AppDataContainer
+3. Room.databaseBuilder() → AppDatabase created (singleton, lazy)
+4. Repositories lazy-initialized on first access
+5. VoxPlanApp() composable → Scaffold + Navigation
+
+SHUTDOWN:
+1. MainActivity.onDestroy()
+2. VoxPlanApplication.onTerminate()
+3. SoundPlayer.release() → ExoPlayer cleanup
+
+CONFIGURATION CHANGES:
+1. ViewModel survives (scoped to back stack entry)
+2. SavedStateHandle restores screen arguments
+3. StateFlow subscriptions re-established
+4. viewModelScope coroutines continue
+
+DATABASE:
+- Version: 13 (current)
+- Migrations: 2→3 through 12→13
+- Type converters: LocalTime, LocalDate
+- Callback logging for debug
+
+NAVIGATION:
+- 6 screens with type-safe routing
+- 4 bottom navigation tabs
+- Compose Navigation NavHost
+- SavedStateHandle for arguments
+
+BACKGROUND PROCESSING:
+- Focus timer: while (isActive) loop with 1s delay
+- Discrete task timer: while (true) loop with 50ms delay
+- Job references stored in StateFlow for manual cancellation
+- Auto-cleanup via viewModelScope.launch
+
+================================================================================
+DATA FLOW EXAMPLES
+================================================================================
+
+GOAL NAVIGATION:
+User clicks goal
+  ↓
+MainViewModel.navigateToSubGoals(goal)
+  ↓
+SharedViewModel.navigateToSubGoal() updates breadcrumbs
+  ↓
+breadcrumbs StateFlow emits new list
+  ↓
+combine() re-evaluates mainUiState
+  ↓
+MainViewModel.mainUiState updates
+  ↓
+MainScreen recomposes with new goals
+  ↓
+UI displays sub-goals with breadcrumb trail
+
+TIME BANKING:
+FocusMode timer ticks (1s intervals)
+  ↓
+Clock completes 30-min rotation (progress = 1.0)
+  ↓
+Medal awarded (15, 30 mins, 1, or 2 hours)
+  ↓
+User clicks "Bank time" button
+  ↓
+FocusViewModel.bankTime() calculates total medal minutes
+  ↓
+timeBankRepository.addTimeBankEntry(goalId, duration)
+  ↓
+Event created with scheduled times
+  ↓
+TimeBank entry inserted (date, duration)
+  ↓
+ProgressViewModel.getTotalTimeForDate() reflects new total
+  ↓
+Weekly progress updated + diamonds/stars displayed
+
+REORDERING GOALS:
+UI button click (Up/Down/HierUp/HierDown)
+  ↓
+ActionModeHandler.toggle*() updates actionMode state
+  ↓
+Button visual feedback shows selected state
+  ↓
+User clicks goal to reorder
+  ↓
+MainViewModel.reorderItem() called with action mode
+  ↓
+Calculate new order (vertical/hierarchy)
+  ↓
+Collect affected goals into list
+  ↓
+repository.updateItemsInTransaction() executes
+  ↓
+Database updated atomically
+  ↓
+getAllTodos() Flow emits new list
+  ↓
+combine() re-evaluates with new todos
+  ↓
+mainUiState updated with new goal list
+  ↓
+UI re-renders with new order
+  ↓
+ActionModeHandler.deactivateButtons()
+
+================================================================================
+BEST PRACTICES IMPLEMENTED
+================================================================================
+
+STATE MANAGEMENT:
+✓ StateFlow over LiveData (better for Compose)
+✓ Single source of truth (combined StateFlow in MainViewModel)
+✓ Immutable data classes for all UI states
+✓ Clear state ownership (each ViewModel owns its state)
+✓ SharingStarted.WhileSubscribed for efficiency
+✓ Explicit loading and error states
+✓ No direct mutable state in repositories
+
+COROUTINES:
+✓ viewModelScope for automatic cleanup
+✓ Job references stored for manual cancellation if needed
+✓ Dispatcher parameter for testability (MainViewModel)
+✓ launch for fire-and-forget (set and forget)
+✓ Proper use of delay for timer and animation loops
+✓ isActive check in timer loops
+
+DATABASE:
+✓ Flow for reactivity (queries return Flow)
+✓ Suspend functions for write operations
+✓ Type converters for date/time serialization
+✓ Careful migration path across 13 versions
+✓ Foreign keys with ON DELETE CASCADE
+✓ Transaction support for atomic updates
+
+ARCHITECTURE:
+✓ Separation of concerns (UI/VM/Repo/DB layers)
+✓ No God ViewModels (each focused on one feature)
+✓ Manual DI (simple, transparent, no reflection)
+✓ Lazy initialization (repositories created on first access)
+✓ Service locator pattern (centralized container)
+✓ No circular dependencies between components
+
+DATA FLOW:
+✓ Unidirectional flow (down) with events (up)
+✓ Reactive updates via combine/flatMapLatest
+✓ Error handling in init blocks
+✓ Loading states throughout
+✓ No state mutations in repositories
+
+CODE ORGANIZATION:
+✓ Package by feature (ui.main, ui.calendar, etc.)
+✓ Sealed classes for type-safe routing
+✓ Constants file (FULLBAR_MINS, pointsForItemCompletion)
+✓ Extension functions (CreationExtras.voxPlanApplication())
+✓ Strategic logging (Log.d for debugging)
+
+================================================================================
+UNIQUE ARCHITECTURAL DECISIONS
+================================================================================
+
+1. MANUAL DI OVER HILT
+   Why: Simplicity for small-medium project, transparency
+   Benefit: Easy to understand, no magic, no reflection
+   Trade-off: More boilerplate, but explicitly clear
+
+2. HYBRID STATE MANAGEMENT
+   Why: Different screens need different state approaches
+   How: StateFlow for reactive data, Compose State for local UI
+   Benefit: Flexibility to use right tool for each case
+
+3. SHARED VIEWMODEL FOR NAVIGATION
+   Why: Breadcrumb trail must persist across screens
+   How: Injected into multiple ViewModels, scoped in factory
+   Benefit: Cross-screen coordination without passing through UI
+
+4. PARENT-CHILD EVENTS IN ONE TABLE
+   Why: Flexible representation of dailies and scheduled blocks
+   How: parentDailyId field (null = daily, set = scheduled)
+   Benefit: Single entity, easy cascading deletes, flexible queries
+
+5. QUOTA ACTIVE DAYS ENCODING
+   Why: Store 7 boolean values in compact form
+   How: "1111100" string, index = dayOfWeek - 1
+   Benefit: Simple, compact, easy to query and update
+
+6. THREE-LEVEL GOAL HIERARCHY
+   Why: Balance between flexibility and complexity
+   How: Recursive processGoals() with MAX_DEPTH = 3
+   Benefit: Complex planning without tree traversal overhead
+
+7. ACTION MODE FOR REORDERING
+   Why: Need multiple reorder directions in one screen
+   How: 5-state sealed class (Normal, VUp, VDown, HUp, HDown)
+   Benefit: Type-safe, explicit modes, clear user intent
+
+================================================================================
+FILE PATHS REFERENCE
+================================================================================
+
+CORE APPLICATION:
+- /app/src/main/java/com/voxplanapp/MainActivity.kt
+- /app/src/main/java/com/voxplanapp/VoxPlanApplication.kt
+- /app/src/main/java/com/voxplanapp/AppViewModelProvider.kt
+
+DATA LAYER (16 files):
+ENTITIES: TodoItem.kt, Event.kt, TimeBankEntry.kt, QuotaEntity.kt
+DAOs: TodoDao.kt, EventDao.kt, TimeBankDao.kt, QuotaDao.kt
+REPOS: TodoRepository.kt, EventRepository.kt, TimeBankRepository.kt, QuotaRepository.kt
+INFRASTRUCTURE: AppDatabase.kt, AppContainer.kt, Converters.kt, Constants.kt
+
+NAVIGATION (4 files):
+- VoxPlanApp.kt (Main composable + ActionModeHandler class)
+- VoxPlanNavHost.kt
+- VoxPlanScreen.kt
+- NavigationViewModel.kt
+
+VIEWMODELS (8 files):
+- MainViewModel.kt
+- SchedulerViewModel.kt
+- FocusViewModel.kt
+- DailyViewModel.kt
+- GoalEditViewModel.kt
+- ProgressViewModel.kt
+- SharedViewModel.kt
+- NavigationViewModel.kt
+
+SHARED (3 files):
+- SharedViewModel.kt
+- SoundPlayer.kt
+- ActionMode.kt
+
+UI SCREENS (11+ files):
+- MainScreen.kt (+ GoalItem, GoalListContainer, QuickScheduleScreen, etc.)
+- DaySchedule.kt
+- DailyScreen.kt
+- FocusModeScreen.kt
+- GoalEditScreen.kt (+ QuotaSettings)
+- ProgressScreen.kt
+
+THEME & CONSTANTS (7 files):
+- Theme.kt, Color.kt, Type.kt
+- Colors.kt, Dimens.kt, DpValues.kt, TextStyles.kt
+
+TOTAL: 51 Kotlin files
+
+================================================================================
+RECOMMENDED USAGE
+================================================================================
+
+FOR NEW DEVELOPERS:
+1. Read ARCHITECTURE_QUICK_REFERENCE.md (30 min)
+2. Read ARCHITECTURE.md Sections 1, 2 (1 hour)
+3. Study actual code for your feature area
+4. Reference ARCHITECTURE.md Sections 3-5 as needed (30 min)
+
+FOR ARCHITECTURE REVIEW:
+1. Read ARCHITECTURE.md Executive Summary
+2. Study Section 6: DI Graph
+3. Study Section 7: Architectural Patterns
+4. Review Section 8: Best Practices
+
+FOR ADDING NEW FEATURES:
+1. Check ARCHITECTURE_QUICK_REFERENCE.md "Core Components"
+2. Study ARCHITECTURE.md Section 2 (Data Layer)
+3. Study relevant ViewModel in Section 1.2
+4. Look at similar existing feature implementation
+
+FOR DEBUGGING:
+1. Check ARCHITECTURE_QUICK_REFERENCE.md "Common Issues & Solutions"
+2. Review ARCHITECTURE.md Section 3 (Reactive Patterns)
+3. Look at relevant data flow diagram (Section 5)
+4. Check file organization for related files
+
+================================================================================
+DOCUMENT STRUCTURE
+================================================================================
+
+ARCHITECTURE.md (1216 lines, 40KB)
+├─ Executive Summary
+├─ 1. STATE MANAGEMENT ARCHITECTURE
+├─ 2. DATA LAYER ARCHITECTURE
+├─ 3. REACTIVE PROGRAMMING & FLOW PATTERNS
+├─ 4. APPLICATION LIFECYCLE
+├─ 5. DATA FLOW DIAGRAMS
+├─ 6. DEPENDENCY INJECTION GRAPH
+├─ 7. COMMON ARCHITECTURAL PATTERNS
+├─ 8. BEST PRACTICES OBSERVED
+├─ 9. FILE STRUCTURE
+└─ Conclusion
+
+ARCHITECTURE_QUICK_REFERENCE.md (400+ lines, 11KB)
+├─ At a Glance
+├─ Core Components
+├─ State Management Patterns
+├─ Data Flow Summary
+├─ Key Features & Implementation
+├─ Navigation Architecture
+├─ Error Handling Strategy
+├─ Best Practices Implemented
+├─ File Organization
+├─ Common Issues & Solutions
+├─ Testing Entry Points
+└─ Performance Considerations
+
+DOCUMENTATION_INDEX.md (8.1KB)
+├─ Generated Documentation Files
+├─ Document Usage
+├─ Document Overview by Topic
+├─ Quick Facts
+├─ File Path Reference
+├─ Common Navigation Paths
+├─ Recommended Reading Order
+└─ Key Insights
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+CODEBASE:
+- Total Kotlin Files: 51
+- Total ViewModels: 8
+- Total Repositories: 4
+- Database Entities: 4
+- Database DAOs: 4
+- Application Screens: 6
+- Bottom Navigation Tabs: 4
+
+ARCHITECTURE:
+- Pattern: MVVM + Manual DI
+- State Management: StateFlow + Compose State
+- Reactive Framework: Kotlin Flow + Coroutines
+- UI Framework: Jetpack Compose
+- Database: Room (SQLite) v13
+
+DOCUMENTATION:
+- Primary Documents: 3 files
+- Total Size: ~59KB
+- Total Lines: ~2000
+- Sections: 30+
+- Code Examples: 50+
+- Diagrams: 4+ data flow diagrams
+- File References: All 51 files documented
+
+COVERAGE:
+- State Management: Complete breakdown of all 8 ViewModels
+- Data Layer: All 4 repos + 4 entities + 4 DAOs
+- DI: Complete graph with scopes
+- Reactive: 5 Flow patterns with code examples
+- Lifecycle: App startup to shutdown
+- Navigation: 6 screens with type-safe routing
+- Patterns: 6 architectural patterns explained
+- Best Practices: 10+ best practices documented
+
+================================================================================
+CONCLUSION
+================================================================================
+
+VoxPlanApp demonstrates excellent modern Android architecture with:
+- Clean separation of concerns
+- Reactive programming from the ground up
+- Type-safe navigation and state
+- Manual dependency injection for transparency
+- Flexible hierarchical data management
+- Robust time tracking and quota system
+- Well-organized codebase with clear patterns
+
+The architecture is well-suited for a productivity application requiring:
+- Complex hierarchical data (3-level goal trees)
+- Time tracking with aggregation (daily, weekly)
+- Parent-child relationships (dailies + scheduled blocks)
+- Reordering and rearrangement operations
+- Cross-screen state coordination (breadcrumbs)
+- Background processing (timers, jobs)
+
+The documentation provides:
+- Complete reference for all architectural components
+- Code examples for common patterns
+- Data flow diagrams for key features
+- Best practices and design decisions
+- File structure and navigation guides
+- Troubleshooting and performance tips
+
+================================================================================
+Generated by: Architecture Documentation Explorer
+Date: November 10, 2025
+Platform: Darwin (macOS) / Android Studio
+Project: VoxPlanApp (Goal Planning + Time Management Application)
+================================================================================

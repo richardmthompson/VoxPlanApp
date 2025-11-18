@@ -143,7 +143,7 @@ fun GoalEditScreen(
                         onConfirm = { startDate ->
                             showScheduleDialog = false
                             viewModel.saveGoal()
-                            viewModel.scheduleGoal(startDate)
+//                            viewModel.scheduleGoal(startDate)
                             // now open the scheduler
                             onNavigateToScheduler(startDate)
                         }

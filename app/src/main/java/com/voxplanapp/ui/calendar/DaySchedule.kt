@@ -106,6 +106,7 @@ fun DaySchedule(
 
     val showDeleteParentDialog by viewModel.showDeleteParentDialog.collectAsState()
 
+    /*
 // In the screen content...
     showDeleteParentDialog?.let { parentId ->
         AlertDialog(
@@ -124,6 +125,8 @@ fun DaySchedule(
             }
         )
     }
+
+     */
 
     Column(
         modifier = modifier

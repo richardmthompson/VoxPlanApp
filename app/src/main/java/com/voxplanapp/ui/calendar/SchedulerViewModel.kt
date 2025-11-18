@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -110,7 +111,7 @@ class SchedulerViewModel(
 
             if (siblings.isEmpty()) {
                 // No other scheduled events for this daily
-                _showDeleteParentDialog.value = event.parentDailyId
+//                _showDeleteParentDialog.value = event.parentDailyId
             } else {
                 // Has siblings, just delete this event
                 eventRepository.deleteEvent(event.id)
