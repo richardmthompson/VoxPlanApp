@@ -1,5 +1,6 @@
 package com.voxplanapp.ui.focusmode
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -442,29 +443,73 @@ fun EventBox(
     eventUiState: Event?,
     modifier: Modifier = Modifier
 ) {
-
-    //Log.d("FocusModeScreen","printing eventBox. start time: ${focusUiState.startTime}, end time: ${focusUiState.endTime}")
     Column (modifier = modifier.fillMaxWidth()) {
         Text(
             text = focusUiState.startTime?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier
-                .align(Alignment.Start)
+            modifier = modifier.align(Alignment.Start)
         )
+
+        // Determine colors based on quota state
+        Log.d("TAG", "EventBox showing: value of quota: ${focusUiState.quota}")
+        val (backgroundColor, progressColor) = when {
+            focusUiState.quota == null -> {
+                // No quota: use original solid green
+                Pair(EventBoxColor, EventBoxColor)
+            }
+            focusUiState.isQuotaComplete -> {
+                // Quota complete (banked time >= quota): yellow
+                Pair(Color(0xFF002702), Color(0xFFFFC107))
+            }
+            else -> {
+                // Quota in progress: dark green background, bright green progress
+                Pair(Color(0xFF002702), EventBoxColor)
+            }
+        }
+
+        // Progress value capped at 1.0 for visual display
+        val displayProgress = focusUiState.quotaProgress.coerceIn(0f, 1.0f)
+
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.8f)
                 .height(48.dp)
-                .background(EventBoxColor, shape = RoundedCornerShape(MediumDp))
-                .padding(MediumDp)
+                .background(backgroundColor, shape = RoundedCornerShape(MediumDp))
         ) {
+            // Progress bar (fills left to right)
+            if (focusUiState.quota != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(displayProgress)
+                        .height(48.dp)
+                        .background(progressColor, shape = RoundedCornerShape(MediumDp))
+                )
+            }
+
+            // Goal title text on top
             Text(
                 text = goalUiState?.goal?.title ?: "",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Black,
-                modifier = Modifier.align(Alignment.CenterStart)
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(MediumDp)
             )
+
+            // Show progress numbers on right side if quota exists
+            if (focusUiState.quota != null) {
+                Text(
+                    text = "${focusUiState.totalProgressMinutes}/${focusUiState.quota.dailyMinutes}m",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(MediumDp)
+                )
+            }
         }
+
         Text(
             text = eventUiState?.endTime?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
             style = MaterialTheme.typography.bodyMedium,

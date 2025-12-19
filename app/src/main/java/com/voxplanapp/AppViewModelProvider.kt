@@ -33,6 +33,7 @@ object AppViewModelProvider {
                 voxPlanApplication().container.todoRepository,
                 voxPlanApplication().container.eventRepository,
                 voxPlanApplication().container.timeBankRepository,
+                voxPlanApplication().container.quotaRepository,
                 soundPlayer = voxPlanApplication().container.soundPlayer,
                 ioDispatcher = Dispatchers.IO,
                 sharedViewModel = sharedViewModel
@@ -66,6 +67,7 @@ object AppViewModelProvider {
                 todoRepository = voxPlanApplication().container.todoRepository,
                 eventRepository = voxPlanApplication().container.eventRepository,
                 timeBankRepository = voxPlanApplication().container.timeBankRepository,
+                quotaRepository = voxPlanApplication().container.quotaRepository,
                 soundPlayer = voxPlanApplication().container.soundPlayer,
                 sharedViewModel = sharedViewModel
             )

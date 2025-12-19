@@ -39,6 +39,9 @@ interface TimeBankDao {
     @Query("SELECT SUM(duration) FROM TimeBank WHERE date = :date")
     fun getTotalTimeForDate(date: LocalDate): Flow<Int?>
 
+    @Query("SELECT SUM(duration) FROM TimeBank WHERE goal_id = :goalId AND date = :date")
+    fun getTotalTimeForGoalOnDate(goalId: Int, date: LocalDate): Flow<Int?>
+
     @Query("DELETE FROM TimeBank WHERE goal_id =:goalId AND duration = :bonusAmount")
     suspend fun deleteCompletionBonus(goalId: Int, bonusAmount: Int)
 }

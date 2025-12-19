@@ -76,6 +76,7 @@ fun MainScreen(
     // receive UiState from the ViewModel (as a State, which causes recomposition upon change)
     val mainUiState by mainViewModel.mainUiState.collectAsState()
     val todayTotalTime by mainViewModel.todayTotalTime.collectAsState()
+    val quotaProgressMap by mainViewModel.quotaProgressMap.collectAsState()
 
     val actionMode by mainViewModel.actionMode
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -144,6 +145,7 @@ fun MainScreen(
 
             GoalListContainer(
                 goalList = mainUiState.goalList,
+                quotaProgressMap = quotaProgressMap,
                 onItemClick = navigateToGoalEdit,
                 saveExpandedSetting = mainViewModel::saveExpandedSetting,
                 onSubGoalsClick = mainViewModel::navigateToSubGoals,

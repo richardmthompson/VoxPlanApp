@@ -5,6 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -13,7 +14,9 @@ import com.voxplanapp.R
 import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.GoalWithSubGoals
+import com.voxplanapp.data.Quota
 import com.voxplanapp.data.RecurrenceType
+import com.voxplanapp.data.QuotaRepository
 import com.voxplanapp.data.TimeBankRepository
 import com.voxplanapp.data.TodoRepository
 import com.voxplanapp.navigation.VoxPlanScreen
@@ -24,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -37,6 +41,7 @@ class FocusViewModel(
     private val todoRepository: TodoRepository,
     private val eventRepository: EventRepository,
     private val timeBankRepository: TimeBankRepository,
+    private val quotaRepository: QuotaRepository,
     private val sharedViewModel: SharedViewModel,
     private val soundPlayer: SoundPlayer
 ): ViewModel() {
@@ -78,6 +83,8 @@ class FocusViewModel(
         checkStartTime()
         // initialise timer
         setupTimeBank()
+        // set up quota progress tracking
+        setupQuotaTracking()
     }
 
     fun toggleFocusMode() {
@@ -156,6 +163,76 @@ class FocusViewModel(
     private fun setupTimeBank() {
         val clockFaceMins = 30
         focusUiState = focusUiState.copy(clockFaceMins = 30f)
+    }
+
+    // set up quota progress tracking
+    private fun setupQuotaTracking() {
+        viewModelScope.launch {
+            // Get the goal ID
+            val currentGoalId = goalId ?: return@launch
+
+            combine(
+                quotaRepository.getQuotaForGoal(currentGoalId),
+                timeBankRepository.getEntriesForDate(LocalDate.now()),
+                snapshotFlow { focusUiState }
+            ) { quota, timeBankEntries, currentFocusState ->
+
+                Log.d("TAG", "Is quota active for goal ${goalId} date? ${if (quota != null) { quotaRepository.isQuotaActiveForDate(quota, LocalDate.now())} else { "" }}")
+
+                // Only process if quota exists and is active for today
+                if (quota == null || !quotaRepository.isQuotaActiveForDate(quota, LocalDate.now())) {
+                    return@combine QuotaProgressData(
+                        quota = null,
+                        bankedMinutes = 0,
+                        totalMinutes = 0,
+                        progress = 0f,
+                        isComplete = false
+                    )
+                }
+
+                // Calculate banked minutes for this goal today
+                val bankedMinutes = timeBankEntries
+                    .filter { it.goalId == currentGoalId }
+                    .sumOf { it.duration }
+
+                // Calculate Time Vault (medals) minutes
+                val vaultMinutes = currentFocusState.medals.sumOf { it.value }
+
+                // Calculate current timer minutes (currentTime is in milliseconds)
+                val timerMinutes = (currentFocusState.currentTime / 60000).toInt()
+
+                // Total progress (for the progress bar fill)
+                val totalMinutes = bankedMinutes + vaultMinutes + timerMinutes
+
+                // Progress ratio for visual display
+                val progress = if (quota.dailyMinutes > 0) {
+                    totalMinutes.toFloat() / quota.dailyMinutes.toFloat()
+                } else 0f
+
+                // Important: yellow state only when BANKED time >= quota
+                // (not just vault + timer, but actually banked for the day)
+                val isComplete = bankedMinutes >= quota.dailyMinutes
+
+                QuotaProgressData(
+                    quota = quota,
+                    bankedMinutes = bankedMinutes,
+                    totalMinutes = totalMinutes,
+                    progress = progress,
+                    isComplete = isComplete
+                )
+
+            }.collect { progressData ->
+
+                // Update state with quota progress
+                focusUiState = focusUiState.copy(
+                    quota = progressData.quota,
+                    bankedMinutesToday = progressData.bankedMinutes,
+                    totalProgressMinutes = progressData.totalMinutes,
+                    quotaProgress = progressData.progress,
+                    isQuotaComplete = progressData.isComplete
+                )
+            }
+        }
     }
 
     // runs every second while the clock is ticking.
@@ -637,10 +714,26 @@ data class FocusUiState (
     val isDiscreteMode: Boolean = false,
     val discreteTaskState: DiscreteTaskState = DiscreteTaskState.IDLE,
     val currentTaskLevel: DiscreteTaskLevel = DiscreteTaskLevel.EASY,
+
+    // quota progress fields
+    val quota: Quota? = null,
+    val bankedMinutesToday: Int = 0,
+    val totalProgressMinutes: Int = 0,
+    val quotaProgress: Float = 0f,  // 0.0 to 1.0+ (can exceed 100%)
+    val isQuotaComplete: Boolean = false,
 )
 
 data class TimerSettingsState(
     val workDuration: Int = 5,
     val restDuration: Int = 1,
     val usePomodoro: Boolean = false,
+)
+
+// Helper data class for quota progress calculations
+private data class QuotaProgressData(
+    val quota: Quota?,
+    val bankedMinutes: Int,
+    val totalMinutes: Int,
+    val progress: Float,
+    val isComplete: Boolean
 )

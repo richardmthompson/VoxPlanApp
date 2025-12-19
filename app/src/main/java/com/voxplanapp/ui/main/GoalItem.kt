@@ -58,6 +58,8 @@ import java.time.LocalDate
 @Composable
 fun GoalItem(
     goal: GoalWithSubGoals,
+    quotaProgress: QuotaProgress? = null,
+    quotaProgressMap: Map<Int, QuotaProgress> = emptyMap(),
     onItemClick: (Int) -> Unit = {},
     onItemComplete: (TodoItem) -> Unit,
     saveExpandedSetting: (Int, Boolean) -> Unit,
@@ -70,6 +72,11 @@ fun GoalItem(
 ) {
     var expanded by remember { mutableStateOf(goal.goal.expanded) }
     var showDropdown by remember { mutableStateOf(false) }
+
+    // Debug logging
+    if (quotaProgress != null) {
+        Log.d("GoalItem", "Goal '${goal.goal.title}' has quota: ${quotaProgress.minutesAccrued}/${quotaProgress.quota.dailyMinutes} mins, complete=${quotaProgress.isComplete}")
+    }
 
     // todo: set these when refactoring goalitem & subgoalitems
     //val backgroundColor = if (goal.goal.isDone) TodoItemBackgroundColor.copy(alpha = 0.5f) else TodoItemBackgroundColor
@@ -93,27 +100,54 @@ fun GoalItem(
                 elevation = CardDefaults.cardElevation(defaultElevation = LargeDp),
                 shape = RoundedCornerShape(size = MediumDp),
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(TodoItemBackgroundColor)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = rememberRipple(bounded = true)
-                        ) {
-                            when (actionMode) {
-                                ActionMode.VerticalUp, ActionMode.VerticalDown,
-                                ActionMode.HierarchyDown, ActionMode.HierarchyUp -> onItemReorder(
-                                    goal
-                                )
-
-                                else -> {
-                                    showDropdown = !showDropdown
-                                }
-                            }
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
+                Box(
+                    modifier = Modifier.fillMaxSize()
                 ) {
+                    // Background layer - changes based on quota completion
+                    val backgroundColor = when {
+                        quotaProgress?.isComplete == true -> QuotaCompleteBackgroundColor
+                        // quotaProgress != null && quotaProgress.minutesAccrued > 0 -> QuotaInProgressBackgroundColor
+                        else -> TodoItemBackgroundColor // Normal background (orange progress bar shows on top)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(backgroundColor)
+                    )
+
+                    // Progress bar layer (only if quota in progress and not complete)
+                    if (quotaProgress != null && !quotaProgress.isComplete) {
+                        val displayProgress = quotaProgress.progress.coerceIn(0f, 1f)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(displayProgress)
+                                .fillMaxSize()
+                                .background(SubGoalItemBackGroundColor) // Use sub-goal color for contrast
+                        )
+                    }
+
+                    // Content layer
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = true)
+                            ) {
+                                when (actionMode) {
+                                    ActionMode.VerticalUp, ActionMode.VerticalDown,
+                                    ActionMode.HierarchyDown, ActionMode.HierarchyUp -> onItemReorder(
+                                        goal
+                                    )
+
+                                    else -> {
+                                        showDropdown = !showDropdown
+                                    }
+                                }
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
 
                     // show sub-goals expand icon
                     var frontPadding = 16.dp
@@ -163,7 +197,8 @@ fun GoalItem(
                     FocusModeIcon(goal = goal, onEnterFocusMode = onEnterFocusMode)
                     //TickBoxIcon(goal = goal)
 
-                }   // item row
+                    }   // content row
+                }   // box with layers
             }   // item card
         }
     }
@@ -192,6 +227,7 @@ fun GoalItem(
                 if ((subGoal.goal.completedDate != null && subGoal.goal.completedDate == LocalDate.now()) || (subGoal.goal.completedDate == null)) {
                     SubGoalItem(
                         subGoal = subGoal,
+                        quotaProgress = quotaProgressMap[subGoal.goal.id], // Each subgoal gets its own quota
                         onSubItemEdit = onItemClick,
                         onSubGoalsClick = onSubGoalsClick,
                         onEnterFocusMode = onEnterFocusMode,
@@ -281,6 +317,7 @@ fun IconDropDownMenu(
 @Composable
 fun SubGoalItem(
     subGoal: GoalWithSubGoals,
+    quotaProgress: QuotaProgress? = null,
     onSubItemEdit: (Int) -> Unit,
     onSubGoalsClick: (GoalWithSubGoals) -> Unit,
     onEnterFocusMode: (Int) -> Unit,
@@ -292,35 +329,80 @@ fun SubGoalItem(
     val textColor = if (subGoal.goal.completedDate != null) TodoItemTextColor.copy(alpha = 0.5f) else TodoItemTextColor
     val textDecoration = if (subGoal.goal.completedDate != null) TextDecoration.LineThrough else null
 
-    Row(
+    // Debug logging
+    if (quotaProgress != null) {
+        Log.d("SubGoalItem", "SubGoal '${subGoal.goal.title}' has quota: ${quotaProgress.minutesAccrued}/${quotaProgress.quota.dailyMinutes} mins, complete=${quotaProgress.isComplete}")
+    }
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .clickable {
-                when (actionMode) {
-                    ActionMode.VerticalUp, ActionMode.VerticalDown,
-                    ActionMode.HierarchyUp, ActionMode.HierarchyDown -> {
-                        onSubItemReorder(subGoal)
-                        Log.d("goalItem", "SubGoalItem: Reordering subgoal: ${subGoal.goal.title}")
-                    }
-
-                    else -> onSubItemEdit(subGoal.goal.id)
+            .height(SubGoalItemHeight)
+            .then(
+                if (quotaProgress?.isComplete == true) {
+                    Modifier
+                        .clip(RoundedCornerShape(MediumDp))
+                        .border(2.dp, QuotaCompleteBorderColor, RoundedCornerShape(MediumDp))
+                } else {
+                    Modifier
                 }
-            }
-            .padding(vertical = 0.dp, horizontal = MediumDp),
-        verticalAlignment = Alignment.CenterVertically
+            )
     ) {
+        // Background layer - changes based on quota completion
+        val backgroundColor = when {
+            quotaProgress?.isComplete == true -> QuotaCompleteBackgroundColor
+            // quotaProgress != null && quotaProgress.minutesAccrued > 0 -> QuotaInProgressBackgroundColor
+            else -> SubGoalItemBackGroundColor // Normal background (orange progress bar shows on top)
+        }
 
-        Text(
-            text = subGoal.goal.title,
-            style = TodoItemTitleTextStyle.copy(color = textColor),
-            textDecoration = textDecoration,
-            modifier = Modifier.weight(1f),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundColor)
         )
 
-        HasSubGoalsIcon(goal = subGoal, onSubGoalsClick = onSubGoalsClick)
+        // Progress bar layer (only if quota in progress and not complete)
+        if (quotaProgress != null && !quotaProgress.isComplete) {
+            val displayProgress = quotaProgress.progress.coerceIn(0f, 1f)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(displayProgress)
+                    .fillMaxSize()
+                    .background(TodoItemBackgroundColor) // Use goal item color for contrast
+            )
+        }
 
-        FocusModeIcon(goal = subGoal, onEnterFocusMode = onEnterFocusMode)
+        // Content layer
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable {
+                    when (actionMode) {
+                        ActionMode.VerticalUp, ActionMode.VerticalDown,
+                        ActionMode.HierarchyUp, ActionMode.HierarchyDown -> {
+                            onSubItemReorder(subGoal)
+                            Log.d("goalItem", "SubGoalItem: Reordering subgoal: ${subGoal.goal.title}")
+                        }
 
+                        else -> onSubItemEdit(subGoal.goal.id)
+                    }
+                }
+                .padding(vertical = 0.dp, horizontal = MediumDp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = subGoal.goal.title,
+                style = TodoItemTitleTextStyle.copy(color = textColor),
+                textDecoration = textDecoration,
+                modifier = Modifier.weight(1f),
+            )
+
+            HasSubGoalsIcon(goal = subGoal, onSubGoalsClick = onSubGoalsClick)
+
+            FocusModeIcon(goal = subGoal, onEnterFocusMode = onEnterFocusMode)
+
+        }
     }
 }
 

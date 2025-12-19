@@ -11,6 +11,8 @@ import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
 import com.voxplanapp.data.FULLBAR_MINS
 import com.voxplanapp.data.GoalWithSubGoals
+import com.voxplanapp.data.Quota
+import com.voxplanapp.data.QuotaRepository
 import com.voxplanapp.data.TimeBankRepository
 import com.voxplanapp.data.TodoItem
 import com.voxplanapp.data.TodoRepository
@@ -41,6 +43,7 @@ class MainViewModel (
     private val repository: TodoRepository,
     private val eventRepository: EventRepository,
     private val timeBankRepository: TimeBankRepository,
+    private val quotaRepository: QuotaRepository,
     private val soundPlayer: SoundPlayer,
     private val ioDispatcher: CoroutineDispatcher,
     private val sharedViewModel: SharedViewModel
@@ -98,6 +101,38 @@ class MainViewModel (
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
         )
+
+    // Quota progress map - combines active quotas with time bank entries for today
+    val quotaProgressMap: StateFlow<Map<Int, QuotaProgress>> = combine(
+        quotaRepository.getAllActiveQuotas(LocalDate.now()),
+        timeBankRepository.getEntriesForDate(LocalDate.now())
+    ) { activeQuotas, timeBankEntries ->
+        Log.d("MainViewModel", "QuotaProgress: activeQuotas count=${activeQuotas.size}, timeBank entries=${timeBankEntries.size}")
+
+        // Group time bank entries by goalId and sum durations
+        val timeByGoal = timeBankEntries
+            .groupBy { it.goalId }
+            .mapValues { (_, entries) -> entries.sumOf { it.duration } }
+
+        // Create progress map for each quota
+        activeQuotas.associate { quota ->
+            val minutesAccrued = timeByGoal[quota.goalId] ?: 0
+            val progress = if (quota.dailyMinutes > 0) {
+                minutesAccrued / quota.dailyMinutes.toFloat()
+            } else {
+                0f
+            }
+            val isComplete = minutesAccrued >= quota.dailyMinutes
+
+            Log.d("MainViewModel", "QuotaProgress: goalId=${quota.goalId}, mins=$minutesAccrued/${quota.dailyMinutes}, progress=$progress, complete=$isComplete")
+
+            quota.goalId to QuotaProgress(quota, minutesAccrued, progress, isComplete)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = emptyMap()
+    )
 
     fun clearBreadcrumbs() {
         sharedViewModel.clearBreadcrumbs()
@@ -459,4 +494,11 @@ class MainViewModel (
 data class MainUiState(
     val goalList: List<GoalWithSubGoals> = listOf(),
     val breadcrumbs: List<GoalWithSubGoals> = listOf()
+)
+
+data class QuotaProgress(
+    val quota: Quota,
+    val minutesAccrued: Int,
+    val progress: Float,  // 0.0 to 1.0+
+    val isComplete: Boolean
 )

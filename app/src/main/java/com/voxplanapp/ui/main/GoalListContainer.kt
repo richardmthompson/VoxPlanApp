@@ -22,6 +22,7 @@ import java.time.LocalDate
 fun GoalListContainer(
     modifier: Modifier = Modifier,
     goalList: List<GoalWithSubGoals>,
+    quotaProgressMap: Map<Int, QuotaProgress> = emptyMap(),
     onItemClick: (Int) -> Unit = {},
     saveExpandedSetting: (Int, Boolean) -> Unit,
     onSubGoalsClick: (GoalWithSubGoals) -> Unit = {},
@@ -45,6 +46,8 @@ fun GoalListContainer(
 
                 GoalItem(
                     goal = goalWithSubGoals,
+                    quotaProgress = quotaProgressMap[goalWithSubGoals.goal.id],
+                    quotaProgressMap = quotaProgressMap,
                     // the item click is a callback to the Edit screen, installed from NavHost
                     onItemClick = onItemClick,
                     saveExpandedSetting = saveExpandedSetting,

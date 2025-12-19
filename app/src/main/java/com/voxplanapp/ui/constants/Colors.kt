@@ -14,6 +14,12 @@ val ActivatedColor = Color(0xFFB21720)
 
 val EventBoxColor = Color(0xFF41c300)
 
+// Quota progress colors
+val QuotaCompleteBackgroundColor = Color(0xFFFFC107)  // Gold for completed quota
+val QuotaCompleteBorderColor = Color(0xFFFF9800)  // Darker orange border (same as medal border)
+val QuotaInProgressBackgroundColor = Color(0xFF002702)  // Dark green background (not currently used)
+val QuotaProgressFillColor = Color(0xFFFF5722)  // Orange progress bar (same as POWER text)
+
 val FocusColorWork = Color(0xFF000000)
 val FocusColorWorkText = Color(0xFFFFFFFF)
 
