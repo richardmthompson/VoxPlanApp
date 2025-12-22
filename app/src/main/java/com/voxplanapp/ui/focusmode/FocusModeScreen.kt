@@ -40,10 +40,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,6 +88,30 @@ fun FocusModeScreen(
     modifier: Modifier = Modifier,
     viewModel: FocusViewModel = viewModel(factory = AppViewModelProvider.Factory)
     ) {
+
+    // Add lifecycle observer to save state when app goes to background
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    // Save state immediately when app goes to background
+                    viewModel.saveStateImmediately()
+                    Log.d("FocusModeScreen", "Lifecycle ON_PAUSE - saved state")
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    // Also save on STOP as extra safety
+                    viewModel.saveStateImmediately()
+                    Log.d("FocusModeScreen", "Lifecycle ON_STOP - saved state")
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // set up ui state variables
     val goalUiState = viewModel.goalUiState
@@ -451,7 +479,7 @@ fun EventBox(
         )
 
         // Determine colors based on quota state
-        Log.d("TAG", "EventBox showing: value of quota: ${focusUiState.quota}")
+        //Log.d("TAG", "EventBox showing: value of quota: ${focusUiState.quota}")
         val (backgroundColor, progressColor) = when {
             focusUiState.quota == null -> {
                 // No quota: use original solid green

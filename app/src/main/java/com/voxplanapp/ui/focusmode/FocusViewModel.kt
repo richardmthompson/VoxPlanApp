@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -138,8 +139,15 @@ class FocusViewModel(
         }
     }
 
+    // Public method for lifecycle-triggered saves
+    fun saveStateImmediately() {
+        saveCurrentState()
+    }
+
     private fun saveCurrentState() {
-        viewModelScope.launch {
+        // Use runBlocking to ensure state is saved IMMEDIATELY (synchronously)
+        // This prevents state loss when process is killed before coroutine completes
+        runBlocking {
             with(focusUiState) {
                 val session = FocusSession(
                     id = 1, // Always 1 - single active session
@@ -154,7 +162,7 @@ class FocusViewModel(
                     lastUpdated = System.currentTimeMillis()
                 )
                 focusSessionRepository.saveSession(session)
-                Log.d("FocusViewModel", "Saved state to DB: currentTime=${currentTime}, medals=${medals.size}, timestamp=${session.lastUpdated}")
+                Log.d("FocusViewModel", "Saved state to DB (BLOCKING): currentTime=${currentTime}, medals=${medals.size}, timestamp=${session.lastUpdated}")
             }
         }
     }
