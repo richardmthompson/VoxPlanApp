@@ -13,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 import com.voxplanapp.R
 import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
+import com.voxplanapp.data.FocusSession
+import com.voxplanapp.data.FocusSessionRepository
 import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.data.Quota
 import com.voxplanapp.data.RecurrenceType
@@ -37,11 +39,12 @@ import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 
 class FocusViewModel(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val todoRepository: TodoRepository,
     private val eventRepository: EventRepository,
     private val timeBankRepository: TimeBankRepository,
     private val quotaRepository: QuotaRepository,
+    private val focusSessionRepository: FocusSessionRepository,
     private val sharedViewModel: SharedViewModel,
     private val soundPlayer: SoundPlayer
 ): ViewModel() {
@@ -85,6 +88,82 @@ class FocusViewModel(
         setupTimeBank()
         // set up quota progress tracking
         setupQuotaTracking()
+        // restore saved state if present (survives process death)
+        restoreSavedState()
+    }
+
+    private fun restoreSavedState() {
+        viewModelScope.launch {
+            val savedSession = focusSessionRepository.getActiveSessionSnapshot()
+            if (savedSession == null) {
+                Log.d("FocusViewModel", "No saved session found - starting fresh")
+                return@launch
+            }
+
+            // Restore timer state
+            val savedTimerState = TimerState.values().getOrNull(savedSession.timerState) ?: TimerState.IDLE
+
+            // Restore medals from comma-separated strings
+            val medals = if (savedSession.medalsValues.isNotEmpty() && savedSession.medalsTypes.isNotEmpty()) {
+                val values = savedSession.medalsValues.split(",").mapNotNull { it.toIntOrNull() }
+                val types = savedSession.medalsTypes.split(",").mapNotNull { it.toIntOrNull() }
+                values.zip(types).map { (value, typeOrdinal) ->
+                    Medal(value, MedalType.values().getOrNull(typeOrdinal) ?: MedalType.MINUTES)
+                }
+            } else {
+                emptyList()
+            }
+
+            // Restore discrete task level
+            val discreteTaskLevel = DiscreteTaskLevel.values().getOrNull(savedSession.discreteTaskLevel) ?: DiscreteTaskLevel.EASY
+
+            // Update state with restored values
+            focusUiState = focusUiState.copy(
+                currentTime = savedSession.currentTime,
+                timerState = savedTimerState,
+                timerStarted = savedSession.timerStarted,
+                medals = medals,
+                clockFaceMins = savedSession.clockFaceMins,
+                isDiscreteMode = savedSession.isDiscreteMode,
+                currentTaskLevel = discreteTaskLevel
+            )
+
+            // Handle timer that was RUNNING when process died - auto-pause
+            if (savedTimerState == TimerState.RUNNING) {
+                focusUiState = focusUiState.copy(timerState = TimerState.PAUSED)
+                Log.d("FocusViewModel", "Timer was RUNNING, auto-paused on restoration")
+            }
+
+            Log.d("FocusViewModel", "Restored state: currentTime=${savedSession.currentTime}, timerState=$savedTimerState, medals=${medals.size}")
+        }
+    }
+
+    private fun saveCurrentState() {
+        viewModelScope.launch {
+            with(focusUiState) {
+                val session = FocusSession(
+                    id = 1, // Always 1 - single active session
+                    currentTime = currentTime,
+                    timerState = timerState.ordinal,
+                    timerStarted = timerStarted,
+                    medalsValues = medals.joinToString(",") { it.value.toString() },
+                    medalsTypes = medals.joinToString(",") { it.type.ordinal.toString() },
+                    clockFaceMins = clockFaceMins,
+                    isDiscreteMode = isDiscreteMode,
+                    discreteTaskLevel = currentTaskLevel.ordinal,
+                    lastUpdated = System.currentTimeMillis()
+                )
+                focusSessionRepository.saveSession(session)
+                Log.d("FocusViewModel", "Saved state to DB: currentTime=${currentTime}, medals=${medals.size}, timestamp=${session.lastUpdated}")
+            }
+        }
+    }
+
+    private fun clearSavedState() {
+        viewModelScope.launch {
+            focusSessionRepository.clearActiveSession()
+            Log.d("FocusViewModel", "Cleared saved session from DB")
+        }
     }
 
     fun toggleFocusMode() {
@@ -92,6 +171,7 @@ class FocusViewModel(
             isDiscreteMode = !focusUiState.isDiscreteMode
         )
         resetTimer()
+        saveCurrentState()
     }
 
     /* functions relating to timed tasks */
@@ -157,6 +237,7 @@ class FocusViewModel(
             timerState = TimerState.RUNNING,
             currentTheme = ColorScheme.WORK
         )
+        saveCurrentState()
     }
 
     // set up time-based variables for the focus mode screen
@@ -177,7 +258,7 @@ class FocusViewModel(
                 snapshotFlow { focusUiState }
             ) { quota, timeBankEntries, currentFocusState ->
 
-                Log.d("TAG", "Is quota active for goal ${goalId} date? ${if (quota != null) { quotaRepository.isQuotaActiveForDate(quota, LocalDate.now())} else { "" }}")
+                //Log.d("TAG", "Is quota active for goal ${goalId} date? ${if (quota != null) { quotaRepository.isQuotaActiveForDate(quota, LocalDate.now())} else { "" }}")
 
                 // Only process if quota exists and is active for today
                 if (quota == null || !quotaRepository.isQuotaActiveForDate(quota, LocalDate.now())) {
@@ -235,6 +316,9 @@ class FocusViewModel(
         }
     }
 
+    // Track last save time to avoid saving every second
+    private var lastSaveTime = 0L
+
     // runs every second while the clock is ticking.
     // calculates the current time and the progress position of the ticking 'pie'
     private fun updateTimerState(elapsedTime: Long) {
@@ -255,6 +339,12 @@ class FocusViewModel(
             currentTime = elapsedTime,
             clockProgress = progress
         )
+
+        // Save state every 5 seconds to keep SavedStateHandle up-to-date
+        if (elapsedTime - lastSaveTime >= 5000) {
+            saveCurrentState()
+            lastSaveTime = elapsedTime
+        }
 
         if (timerSettingsState.usePomodoro) {
 
@@ -302,10 +392,12 @@ class FocusViewModel(
         // this cancels the ticking.
         _timerJob.value?.cancel()
         _timerJob.value = null
+        saveCurrentState()
     }
 
     fun updateClockFaceMinutes(minutes: Float) {
         focusUiState = focusUiState.copy(clockFaceMins = minutes)
+        saveCurrentState()
     }
 
     // this is the 'bank time' button in the timer controls.
@@ -457,6 +549,7 @@ class FocusViewModel(
             medals = focusUiState.medals + medal
         )
         Log.d("focusmode","medals: ${focusUiState.medals} just added 1 x $medal")
+        saveCurrentState()
     }
 
     fun bankTime() {
@@ -465,22 +558,8 @@ class FocusViewModel(
         if (medalTime > 0) {
             viewModelScope.launch {
                 val goalId = goalUiState?.goal?.id ?: return@launch
+                // TimeBank is source of truth for ad-hoc focus sessions
                 timeBankRepository.addTimeBankEntry(goalId, medalTime)
-
-                // Create an event for the banked time session
-                val startTime = focusUiState.startTime ?: LocalTime.now()
-                val event = Event(
-                    goalId = goalId,
-                    title = goalUiState?.goal?.title ?: "Focused Work",
-                    startTime = startTime,
-                    endTime = startTime.plusMinutes(medalTime.toLong()),
-                    startDate = focusUiState.date ?: LocalDate.now(),
-                    recurrenceType = RecurrenceType.NONE,
-                    recurrenceInterval = null,
-                    recurrenceEndDate = null,
-                    color = 0
-                )
-                eventRepository.insertEvent(event)
             }
 
             // clear medals
@@ -490,6 +569,9 @@ class FocusViewModel(
             // log what happened
             if (goalId != null) Log.d("TimeBank", "Banked $medalTime minutes into goalId $goalId?")
             else Log.d("TimeBank", "Trying to bank time failed, no goal id")
+
+            // Clear saved state (session complete)
+            clearSavedState()
 
             // Update goal or event with accrued time
         }
@@ -501,6 +583,7 @@ class FocusViewModel(
 
     fun onExit() {
         createOrUpdateEvent()
+        clearSavedState()
     }
 
     private fun createOrUpdateEvent(): Boolean {
@@ -509,11 +592,11 @@ class FocusViewModel(
 
         // Calculate minutes spent
         val minutesSpent = ChronoUnit.MINUTES.between(startTime, endTime)
-        if (minutesSpent < 10) return false  // Skip if less than 10 minutes
+        if (minutesSpent < 15) return false  // Skip if less than 10 minutes
 
         viewModelScope.launch {
             if (focusUiState.isFromEvent) {
-                // Update existing event
+                // Update existing scheduled event
                 eventUiState?.let { existingEvent ->
                     val updatedEvent = existingEvent.copy(
                         startTime = startTime,
@@ -521,21 +604,9 @@ class FocusViewModel(
                     )
                     eventRepository.updateEvent(updatedEvent)
                 }
-            } else {
-                // Create new event
-                val newEvent = Event(
-                    goalId = goalUiState?.goal?.id ?: return@launch,
-                    title = goalUiState?.goal?.title ?: return@launch,
-                    startTime = startTime,
-                    endTime = endTime,
-                    startDate = LocalDate.now(),
-                    recurrenceType = RecurrenceType.NONE,
-                    recurrenceInterval = null,
-                    recurrenceEndDate = null,
-                    color = 0
-                )
-                eventRepository.insertEvent(newEvent)
             }
+            // Note: Ad-hoc focus sessions (not from scheduled event) are tracked
+            // via TimeBank only. Events are reserved for explicitly scheduled blocks.
         }
         return true
     }

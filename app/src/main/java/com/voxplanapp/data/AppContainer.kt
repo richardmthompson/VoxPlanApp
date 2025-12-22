@@ -16,6 +16,7 @@ interface AppContainer {
     val eventRepository: EventRepository
     val timeBankRepository: TimeBankRepository
     val quotaRepository: QuotaRepository
+    val focusSessionRepository: FocusSessionRepository
     val soundPlayer: SoundPlayer
 }
 
@@ -31,7 +32,7 @@ class AppDataContainer(private val context: Context) : AppContainer {
                     AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
                     AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
                     AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12,
-                    AppDatabase.MIGRATION_12_13
+                    AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14
                     )
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
@@ -71,6 +72,9 @@ class AppDataContainer(private val context: Context) : AppContainer {
     }
     override val quotaRepository: QuotaRepository by lazy {
         QuotaRepository(database.quotaDao())
+    }
+    override val focusSessionRepository: FocusSessionRepository by lazy {
+        FocusSessionRepository(database.focusSessionDao())
     }
     override val soundPlayer: SoundPlayer by lazy {
         SoundPlayer(context)

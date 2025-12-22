@@ -1,6 +1,14 @@
-# CLAUDE.md
+---
+file: CLAUDE.md
+function: This file provides guidance to Claude Code when working with code in this repository.
+variables: $CURRENT_PROJECT_ROOT = root directory of current project (should contain .claude/)
+---
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# **IMPORTANT**
+
+- Always check - is this a coding task?
+- If so, am I in one of the correct modes (PLANNER / EXECUTOR)?
+- Have I invoked the coding-planner?
 
 # Dual Roles for Problem Solving
 
@@ -56,6 +64,19 @@ The skill returns plan location and confidence. Your job:
 
 ---
 
+# START HERE WHEN PLANNING: Gather Context First
+
+- `MVP_RELEASE_PLAN.md`: Overview of all current goals (MVP Release)
+
+#### ALWAYS LOOK AT THESE FIRST...
+
+`agent/context/project_context.md`: High level project context info
+`agent/context/codebase_context.md`: Codebase specific for dev-level architectural understanding.
+
+- `agent/context/`: ALSO, make sure you SEARCH this directory for more specific CODE-context. This will save you time.
+
+---
+
 ## EXECUTOR Mode
 
 **Responsibilities**:
@@ -84,6 +105,38 @@ The skill returns plan location and confidence. Your job:
 3. `bv --robot-plan` - Understand strategic priorities and impact
 4. Report to user: "X items ready, current priorities: [summary from bv]"
 
+**Agent Mail Integration**:
+
+When registered with Agent Mail (via `mcp__mcp-agent-mail__register_agent`), agents should follow this workflow:
+
+*Registration & Startup:*
+- Set contact policy to "open" using `mcp__mcp-agent-mail__set_contact_policy`
+- Check inbox with `mcp__mcp-agent-mail__fetch_inbox` before starting work
+- Review available work: `bd ready --json`
+- If work exists: autonomously select and claim tasks
+- If no work: email user requesting assignment
+
+*Autonomous Work Selection:*
+1. Run `bd ready --json` to find unblocked issues
+2. Prioritize: P0 > P1 > P2 > P3 > P4
+3. Select task matching capabilities
+4. Email other agents: "Starting work on [issue-id]"
+5. Claim: `bd update [issue-id] --status=in_progress`
+6. Execute following standard beads workflow
+
+*Inter-Agent Communication:*
+- Before sending email: check inbox and respond to pending messages
+- Broadcast work start/completion to coordination with `mcp__mcp-agent-mail__send_message`
+- Check for task conflicts by reviewing agent activity
+- Use email for handoffs and blocking issues
+
+*Work Request (No Available Issues):*
+Email user with:
+- Project state summary
+- Completed work since last session
+- Capabilities/specializations
+- Request for new assignment
+
 **Planning Hierarchy**:
 
 - **Scratchpad/PRP**: High-level project context, strategic planning, solution architecture - human-readable
@@ -99,126 +152,43 @@ The skill returns plan location and confidence. Your job:
 
 ### TodoWrite vs Beads: When to Use Which
 
-**Purpose**: TodoWrite is for **transparent, step-by-step execution tracking** within a session. Beads is for **persistent strategic work** across sessions.
+| Tool | Timescale | Persistence | Use For |
+|------|-----------|-------------|---------|
+| **TodoWrite** | Minutes-hours (single session) | Cleared at session end | Multi-step execution tracking (2+ steps), implementation, analysis, debugging |
+| **Beads** | Days-weeks (multi-session) | Survives compaction | Strategic objectives, long-term tracking, agent coordination |
 
-**Timescale Distinction**:
-
-- **TodoWrite**: Multi-step tasks within a session (minutes to hours)
-- **Beads**: Multi-session strategic work (days to weeks)
-
-**When to ALWAYS use TodoWrite:**
-
-- Any multi-step task (2+ distinct steps) - makes progress visible
-- Complex implementation work - helps both AI and human track state
-- Analysis and research - shows systematic exploration
-- Planning and decision-making - demonstrates structured thinking
-- Debugging and troubleshooting - tracks investigation steps
-
-**When TodoWrite is OPTIONAL:**
-
-- Single-step, atomic tasks (e.g., "read file X", "update single config value")
-- Simple queries with immediate answers
-
-**When to use beads instead:**
-
-- Strategic objectives that span multiple sessions
-- Persistent task tracking that survives conversation compaction
-- Work coordination across multiple agents or time periods
-- Work affecting the project that needs to be tracked long-term
+**Key Decision**: Use TodoWrite for transparency during execution, beads for persistence across sessions.
 
 **Handoff Pattern:**
-
 ```bash
-# Session start
-bd show PAI-123                    # Read strategic objective
-# → Create TodoWrite items for tactical execution
-# → Mark TodoWrite items completed as you work
-# → Update bead notes at checkpoints
-bd update PAI-123 --notes "..."   # Strategic checkpoint
-# Session end (TodoWrite disappears, bead persists)
+bd show PAI-123              # Read strategic objective
+# Create TodoWrite for execution → Work → Mark complete
+bd update PAI-123 --notes "..." # Checkpoint progress
+# Session end: TodoWrite cleared, bead persists
 ```
-
-**Example Workflow:**
-
-1. Start session, check ready work: `bd ready --json`
-2. Pick task: `bd update PAI-abc --status in_progress`
-3. **Create TodoWrite for execution steps** (even for tasks within one session)
-4. Execute and mark TodoWrite items complete as you progress
-5. At checkpoint: `bd update PAI-abc --notes "..."` with detailed progress
-6. Convert any incomplete TodoWrite tasks to beads if they need persistence
-7. End session: TodoWrite cleared, bead persists with notes
 
 ---
 
 ### Beads Issue Fields Overview
 
-Beads issues use four content fields with distinct purposes and update patterns:
+| Field | Purpose | Immutable? | When to Set/Update |
+|-------|---------|------------|-------------------|
+| `description` | Problem statement (what & why) | ✅ Yes | At creation only - never modify |
+| `design` | Technical approach | ❌ No | During planning - update only for major pivots |
+| `acceptance_criteria` | Completion checklist | ⚠️ Semi | When design clear - mark items done as you work |
+| `notes` | Session handoff document | ❌ No | **Most frequent** - update at milestones, blockers, session end |
 
-| Field                 | Purpose                        | Set When          | Update Pattern  | Immutable? |
-| --------------------- | ------------------------------ | ----------------- | --------------- | ---------- |
-| `description`         | Problem statement (what & why) | At creation       | Never           | ✅ Yes     |
-| `design`              | Technical approach             | During planning   | Rarely (pivots) | ❌ No      |
-| `acceptance_criteria` | Completion checklist           | When design clear | Mark items done | ⚠️ Semi    |
-| `notes`               | Session handoff                | During work       | Every milestone | ❌ No      |
-
-**Field Usage Guidelines:**
-
-**`description`** - The immutable "what and why"
-
-- Set once at creation, never modified
-- Explains the problem, not the solution
-- Should be understandable without conversation history
-- CLI: `bd create "Title" --description "..."`
-- Example: "Users cannot reset passwords because email service lacks retry logic"
-
-**`design`** - The technical approach
-
-- Documents initial architecture and decisions
-- Set during planning phase
-- Only update for major pivots (rare)
-- CLI: `bd create "Title" --design "..."` or `bd update ID --design "..."`
-- Example: "Use exponential backoff with max 3 retries. Integrate SendGrid API with rate limiting."
-
-**`acceptance_criteria`** - The definition of "done"
-
-- List of concrete, testable deliverables
-- Set when design is clear
-- Checklist format (mark items complete as you go)
-- CLI: `bd create "Title" --acceptance "- [ ] Item 1\n- [ ] Item 2"`
-- Example: "Email retry logic implemented; Tests cover all retry scenarios; Docs updated"
-
-**`notes`** - The dynamic handoff document
-
-- **Most frequently updated field**
-- Session-to-session progress tracking
-- Survives conversation compaction
-- Uses structured format (see below)
-- CLI: `bd update ID --notes "..."`
-- See "Beads Notes Structure (Mandatory)" section below for detailed format
-
-**When to use which field:**
-
-- 🆕 Creating issue → Set `description` (and optionally `design`/`acceptance_criteria`)
-- 📋 Planning approach → Update `design` with architecture decisions
-- ✅ Defining completion → Set `acceptance_criteria` checklist
-- 🔄 During active work → Update `notes` at milestones (most common)
-- ❌ Never update `description` after creation
-
-**Common mistakes:**
-
-- ❌ Updating `description` with progress (use `notes` instead)
-- ❌ Putting session details in `design` (use `notes` instead)
-- ❌ Mixing problem with solution in `description`
-- ❌ Leaving `notes` empty when work is in progress
+**Field Usage:**
+- **`description`**: Set once. Problem, not solution. Example: "Email service lacks retry logic for password resets"
+- **`design`**: Architecture decisions during planning. Rarely updated after set.
+- **`acceptance_criteria`**: Concrete deliverables checklist. Mark complete as you work.
+- **`notes`**: Progress tracking (see "Beads Notes Structure" below). Update frequently during active work.
 
 ---
 
 ### Beads Notes Structure (Mandatory)
 
-**Purpose**: Notes are your handoff document - they survive compaction and enable context recovery.
-
 **Structured Format:**
-
 ```
 COMPLETED: [Specific deliverables with technical details]
 IN PROGRESS: [Current state + immediate next step]
@@ -226,59 +196,13 @@ BLOCKERS: [What prevents progress, or "None"]
 KEY DECISIONS: [Important decisions with rationale]
 ```
 
-**Quality Tests:**
+**Quality Test**: Could you or another agent resume this work without conversation history? If no, improve notes.
 
-- **Future-me test**: Could I resume this work without conversation history?
-- **Stranger test**: Could another developer understand this and continue?
-
-If either answer is "no", notes need improvement.
-
-**When to Update Notes:**
-
-- Token usage approaching limits (context pressure)
-- Major milestones completed
-- Blockers encountered
-- Before requesting user decisions
-- End of session (always)
-
-**Good Notes Characteristics:**
-
-- **COMPLETED**: Past tense, specific deliverables, file names, verification state
-- **IN PROGRESS**: Present + future, exact current state (file:line), concrete next step
-- **BLOCKERS**: Specific, actionable, external dependencies or decision points
-- **KEY DECISIONS**: Captures "why" not just "what", includes rationale and alternatives considered
-
-**Examples:**
-
-✅ Good COMPLETED:
-
-```
-COMPLETED:
-- Implemented JWT auth in AuthService.kt using jose library
-- Added token refresh endpoint /api/auth/refresh with 15min expiry
-- Tests passing (AuthServiceTest.kt:45-89)
-```
-
-❌ Bad COMPLETED:
-
-```
-COMPLETED: Auth stuff
-```
-
-✅ Good IN PROGRESS:
-
-```
-IN PROGRESS:
-Currently adding error handling in RefreshTokenHandler.kt:67
-Next: Implement token rotation in rotateRefreshToken() function
-See pattern in UserAuthRepository.kt:123-145
-```
-
-❌ Bad IN PROGRESS:
-
-```
-IN PROGRESS: Working on tokens
-```
+**Guidelines:**
+- **COMPLETED**: Past tense, file names, verification (e.g., "Implemented JWT auth in AuthService.kt, tests passing")
+- **IN PROGRESS**: Current state with file:line, concrete next step (e.g., "Adding error handling in RefreshTokenHandler.kt:67. Next: Implement token rotation")
+- **BLOCKERS**: Specific blockers or "None"
+- **KEY DECISIONS**: Why, not just what - include rationale
 
 ## Project Overview
 
@@ -335,89 +259,15 @@ VoxPlanApp is an Android productivity app built with Jetpack Compose that implem
 ./gradlew installDebug
 ```
 
-## Architecture Overview
+## Architecture & Codebase Reference
 
-### MVVM with Manual Dependency Injection
+**Detailed architecture documentation is in context files** - refer to these instead of duplicating here:
 
-**Dependency Container Pattern:**
+- **`agent/context/project_context.md`** - High-level project architecture, features, and design decisions
+- **`agent/context/codebase_context.md`** - Development-level architectural details, patterns, and code structure
+- **`agent/context/dailies_context.md`** - Specific context for dailies feature implementation
 
-- `VoxPlanApplication` creates `AppDataContainer` (implements `AppContainer`)
-- All repositories and database are lazy-initialized singletons
-- `AppViewModelProvider.Factory` creates ViewModels with injected dependencies
-- `SharedViewModel` is shared across multiple screens for breadcrumb navigation
-
-**Key Pattern:**
-
-```kotlin
-// Access application container
-val application = (context.applicationContext as VoxPlanApplication)
-val repository = application.container.todoRepository
-```
-
-### State Management Architecture
-
-**Hybrid Approach:**
-
-1. **StateFlow** - For reactive, observable data from repositories
-2. **Compose State (mutableStateOf)** - For UI-local, transient state
-3. **SharedViewModel** - For cross-screen state (breadcrumb navigation)
-
-**Critical Pattern:**
-
-```kotlin
-// Combining multiple flows into single UI state
-val mainUiState: StateFlow<MainUiState> = combine(
-    repository.getAllTodos(),
-    sharedViewModel.breadcrumbs
-) { todos, breadcrumbs ->
-    MainUiState(
-        goalList = sharedViewModel.processGoals(todos, currentParentId),
-        breadcrumbs = breadcrumbs
-    )
-}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), MainUiState())
-```
-
-### Data Layer Architecture
-
-**Entities:**
-
-- `TodoItem` - Hierarchical goals/subgoals (max depth: 3)
-- `Event` - Used for BOTH dailies AND scheduled blocks (distinguished by `parentDailyId`)
-- `TimeBank` - Time tracking entries (minutes per goal per date)
-- `Quota` - Daily time quotas for goals (with active days encoding)
-
-**Parent-Child Event Pattern (CRITICAL):**
-
-```kotlin
-// Parent Daily: parentDailyId = null, startTime/endTime = null
-val daily = Event(goalId = 5, title = "Programming", startDate = today, parentDailyId = null)
-
-// Scheduled Child: parentDailyId = dailyId, startTime/endTime populated
-val scheduled = Event(goalId = 5, title = "Programming", startDate = today,
-    parentDailyId = daily.id, startTime = LocalTime.of(9, 0), endTime = LocalTime.of(10, 0))
-```
-
-**Quota Active Days Encoding:**
-
-- String of 7 chars representing Mon-Sun: `"1111100"` = Mon-Fri active
-- Index = `dayOfWeek.value - 1` (0-based)
-- Check if active: `quota.activeDays[dayIndex] == '1'`
-
-### Hierarchical Goal Processing
-
-**SharedViewModel.processGoals()** - Recursive function (max depth 3) that builds goal tree:
-
-- Filters by `parentId` at each level
-- Sorts by `order` field
-- Returns `List<GoalWithSubGoals>` with nested structure
-- Used by MainViewModel, GoalEditViewModel, and FocusViewModel
-
-**Breadcrumb Navigation:**
-
-- SharedViewModel maintains `breadcrumbs: StateFlow<List<GoalWithSubGoals>>`
-- Navigate down: `navigateToSubGoal(goal, parentGoal)`
-- Navigate up: `navigateUp()` - pops last breadcrumb
-- Current parent ID: `breadcrumbs.lastOrNull()?.goal?.id`
+**When planning/coding**: Always check agent/context/ directory first for existing architectural context.
 
 ## Critical Files & Line Counts
 

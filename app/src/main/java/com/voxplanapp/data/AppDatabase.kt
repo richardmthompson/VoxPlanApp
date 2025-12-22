@@ -7,12 +7,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @TypeConverters(Converters::class)
-@Database(entities = [TodoItem::class, Event::class, TimeBank::class, Quota::class], version = 13)
+@Database(entities = [TodoItem::class, Event::class, TimeBank::class, Quota::class, FocusSession::class], version = 14)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun todoDao(): TodoDao
     abstract fun eventDao(): EventDao
     abstract fun timeBankDao(): TimeBankDao
     abstract fun quotaDao(): QuotaDao
+    abstract fun focusSessionDao(): FocusSessionDao
 
     companion object {
         val MIGRATION_2_3 = object : Migration(2,3) {
@@ -171,10 +172,10 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // Copy data, excluding scheduled column
                 database.execSQL("""
-            INSERT INTO Event_new 
-            SELECT id, goalId, title, startTime, endTime, startDate, 
-                   recurrenceType, recurrenceInterval, recurrenceEndDate, 
-                   color, `order`, quotaDuration, scheduledDuration, 
+            INSERT INTO Event_new
+            SELECT id, goalId, title, startTime, endTime, startDate,
+                   recurrenceType, recurrenceInterval, recurrenceEndDate,
+                   color, `order`, quotaDuration, scheduledDuration,
                    completedDuration, NULL
             FROM Event
         """)
@@ -182,6 +183,26 @@ abstract class AppDatabase : RoomDatabase() {
                 // Drop old table and rename new one
                 database.execSQL("DROP TABLE Event")
                 database.execSQL("ALTER TABLE Event_new RENAME TO Event")
+            }
+        }
+
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create FocusSession table for persisting focus mode state across process death
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS FocusSession (
+                        id INTEGER PRIMARY KEY NOT NULL,
+                        currentTime INTEGER NOT NULL,
+                        timerState INTEGER NOT NULL,
+                        timerStarted INTEGER NOT NULL,
+                        medalsValues TEXT NOT NULL,
+                        medalsTypes TEXT NOT NULL,
+                        clockFaceMins REAL NOT NULL,
+                        isDiscreteMode INTEGER NOT NULL,
+                        discreteTaskLevel INTEGER NOT NULL,
+                        lastUpdated INTEGER NOT NULL
+                    )
+                """)
             }
         }
 

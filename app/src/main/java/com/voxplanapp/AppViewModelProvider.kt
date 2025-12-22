@@ -68,6 +68,7 @@ object AppViewModelProvider {
                 eventRepository = voxPlanApplication().container.eventRepository,
                 timeBankRepository = voxPlanApplication().container.timeBankRepository,
                 quotaRepository = voxPlanApplication().container.quotaRepository,
+                focusSessionRepository = voxPlanApplication().container.focusSessionRepository,
                 soundPlayer = voxPlanApplication().container.soundPlayer,
                 sharedViewModel = sharedViewModel
             )
