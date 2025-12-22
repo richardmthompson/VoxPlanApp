@@ -105,37 +105,120 @@ The skill returns plan location and confidence. Your job:
 3. `bv --robot-plan` - Understand strategic priorities and impact
 4. Report to user: "X items ready, current priorities: [summary from bv]"
 
-**Agent Mail Integration**:
+## Agent Mail Coordination (MANDATORY)
 
-When registered with Agent Mail (via `mcp__mcp-agent-mail__register_agent`), agents should follow this workflow:
+### Agent Identity & Registration
 
-*Registration & Startup:*
-- Set contact policy to "open" using `mcp__mcp-agent-mail__set_contact_policy`
-- Check inbox with `mcp__mcp-agent-mail__fetch_inbox` before starting work
-- Review available work: `bd ready --json`
-- If work exists: autonomously select and claim tasks
-- If no work: email user requesting assignment
+**CRITICAL**: VoxPlan project key is `/Users/richardthompson/StudioProjects/VoxPlanApp` - use this EXACT path for all Agent Mail operations.
 
-*Autonomous Work Selection:*
-1. Run `bd ready --json` to find unblocked issues
-2. Prioritize: P0 > P1 > P2 > P3 > P4
-3. Select task matching capabilities
-4. Email other agents: "Starting work on [issue-id]"
-5. Claim: `bd update [issue-id] --status=in_progress`
-6. Execute following standard beads workflow
+**First-Time Setup (Once Per Agent):**
 
-*Inter-Agent Communication:*
-- Before sending email: check inbox and respond to pending messages
-- Broadcast work start/completion to coordination with `mcp__mcp-agent-mail__send_message`
-- Check for task conflicts by reviewing agent activity
-- Use email for handoffs and blocking issues
+1. **Create unique identity** (not register - that can reuse names):
+   ```
+   mcp__mcp-agent-mail__create_agent_identity(
+     project_key="/Users/richardthompson/StudioProjects/VoxPlanApp",
+     program="claude-code",
+     model="sonnet-4.5",
+     task_description="VoxPlan development"
+   )
+   ```
+   System assigns unique name (e.g., "BlueLake", "GreenCastle")
 
-*Work Request (No Available Issues):*
-Email user with:
-- Project state summary
-- Completed work since last session
-- Capabilities/specializations
-- Request for new assignment
+2. **Set contact policy to "open"**:
+   ```
+   mcp__mcp-agent-mail__set_contact_policy(
+     project_key="/Users/richardthompson/StudioProjects/VoxPlanApp",
+     agent_name="<your_assigned_name>",
+     policy="open"
+   )
+   ```
+
+3. **Send introduction**: Announce you're online to other VoxPlan agents
+
+### Session Start Protocol (Every Session)
+
+1. Check inbox: `fetch_inbox(project_key=..., agent_name=...)`
+2. Review available work: `bd ready --json`
+3. Check for messages from other agents
+4. Report status to user
+
+### Task Workflow - MANDATORY Communication
+
+**Before Starting ANY Task:**
+
+1. **Reserve files**:
+   ```
+   file_reservation_paths(
+     project_key="/Users/richardthompson/StudioProjects/VoxPlanApp",
+     agent_name="<your_name>",
+     paths=["app/src/main/java/com/voxplanapp/..."],
+     ttl_seconds=3600,
+     exclusive=True,
+     reason="Working on <issue-id>"
+   )
+   ```
+
+2. **Send start message** (MANDATORY):
+   ```
+   send_message(
+     project_key="/Users/richardthompson/StudioProjects/VoxPlanApp",
+     sender_name="<your_name>",
+     to=["<all_agent_names>"],  # MUST include ALL project agents + Richard
+     subject="Starting work on <task-title>",
+     body_md="Working on <issue-id>: <brief description>\nReserved files: <list>\nEstimated time: <estimate>",
+     thread_id="bd-<issue-id>"
+   )
+   ```
+
+   **Critical**: List all agents in project. Use `resource://agents/<project_key>` to discover names.
+
+3. Claim task: `bd update <issue-id> --status=in_progress`
+
+**After Completing ANY Task:**
+
+1. **Send completion message** (MANDATORY):
+   ```
+   send_message(
+     project_key="/Users/richardthompson/StudioProjects/VoxPlanApp",
+     sender_name="<your_name>",
+     to=["<all_agent_names>"],  # MUST include ALL project agents + Richard
+     subject="Completed <task-title>",
+     body_md="Completed <issue-id>\n\nChanges:\n- <summary>\n\nFiles modified:\n- <list>\n\nTests: <status>",
+     thread_id="bd-<issue-id>"
+   )
+   ```
+
+   **Critical**: Notify everyone of completion for coordination.
+
+2. **Release file reservations**:
+   ```
+   release_file_reservations(
+     project_key="/Users/richardthompson/StudioProjects/VoxPlanApp",
+     agent_name="<your_name>"
+   )
+   ```
+
+3. Update beads notes
+4. Close task: `bd close <issue-id>`
+
+### Inter-Agent Communication
+
+- **Check inbox periodically** during work (every 15-20 minutes)
+- **Acknowledge important messages**: Use `acknowledge_message`
+- **Respond to coordination requests** promptly
+- **Use thread_id="bd-<issue-id>"** to link messages to beads tasks
+
+### File Coordination Rules
+
+- **ALWAYS reserve before editing** - prevents conflicts
+- **Use specific globs** - not `**/*` (too broad)
+- **Release when done** - don't hold reservations
+- **Respect others' locks** - if files are reserved, message to coordinate
+
+### Project Key Reference
+
+**ALWAYS use:** `/Users/richardthompson/StudioProjects/VoxPlanApp`
+**NEVER use:** Any other path (like CODE/PAI/projects/voxplan)
 
 **Planning Hierarchy**:
 
