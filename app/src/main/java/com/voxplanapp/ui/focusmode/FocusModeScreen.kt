@@ -95,14 +95,12 @@ fun FocusModeScreen(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
-                    // Save state immediately when app goes to background
-                    viewModel.saveStateImmediately()
-                    Log.d("FocusModeScreen", "Lifecycle ON_PAUSE - saved state")
+                    // SavedStateHandle automatically persists state
+                    Log.d("FocusModeScreen", "Lifecycle ON_PAUSE")
                 }
                 Lifecycle.Event.ON_STOP -> {
-                    // Also save on STOP as extra safety
-                    viewModel.saveStateImmediately()
-                    Log.d("FocusModeScreen", "Lifecycle ON_STOP - saved state")
+                    // SavedStateHandle automatically persists state
+                    Log.d("FocusModeScreen", "Lifecycle ON_STOP")
                 }
                 else -> {}
             }

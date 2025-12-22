@@ -1,5 +1,6 @@
 package com.voxplanapp.ui.focusmode
 
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,8 +14,6 @@ import androidx.lifecycle.viewModelScope
 import com.voxplanapp.R
 import com.voxplanapp.data.Event
 import com.voxplanapp.data.EventRepository
-import com.voxplanapp.data.FocusSession
-import com.voxplanapp.data.FocusSessionRepository
 import com.voxplanapp.data.GoalWithSubGoals
 import com.voxplanapp.data.Quota
 import com.voxplanapp.data.RecurrenceType
@@ -45,10 +44,21 @@ class FocusViewModel(
     private val eventRepository: EventRepository,
     private val timeBankRepository: TimeBankRepository,
     private val quotaRepository: QuotaRepository,
-    private val focusSessionRepository: FocusSessionRepository,
     private val sharedViewModel: SharedViewModel,
     private val soundPlayer: SoundPlayer
 ): ViewModel() {
+
+    companion object {
+        private const val KEY_START_TIMESTAMP = "focus_start_timestamp"
+        private const val KEY_CURRENT_TIME = "focus_current_time"
+        private const val KEY_TIMER_STATE = "focus_timer_state"
+        private const val KEY_TIMER_STARTED = "focus_timer_started"
+        private const val KEY_MEDALS_VALUES = "focus_medals_values"
+        private const val KEY_MEDALS_TYPES = "focus_medals_types"
+        private const val KEY_CLOCK_FACE_MINS = "focus_clock_face_mins"
+        private const val KEY_IS_DISCRETE_MODE = "focus_is_discrete_mode"
+        private const val KEY_DISCRETE_TASK_LEVEL = "focus_discrete_task_level"
+    }
 
     // process either the goalId or the eventId, depending on whether we navigate from
     // the GoalEditScreen or the DayScheduler directly.
@@ -94,84 +104,143 @@ class FocusViewModel(
     }
 
     private fun restoreSavedState() {
-        viewModelScope.launch {
-            val savedSession = focusSessionRepository.getActiveSessionSnapshot()
-            if (savedSession == null) {
-                Log.d("FocusViewModel", "No saved session found - starting fresh")
-                return@launch
-            }
+        // Check for start timestamp approach
+        val startTimestamp = savedStateHandle.get<Long>(KEY_START_TIMESTAMP)
 
-            // Restore timer state
-            val savedTimerState = TimerState.values().getOrNull(savedSession.timerState) ?: TimerState.IDLE
+        if (startTimestamp != null) {
+            // NEW APPROACH: Calculate elapsed time from start timestamp
+            val savedTimerState = savedStateHandle.get<Int>(KEY_TIMER_STATE)?.let { ordinal ->
+                TimerState.values().getOrNull(ordinal)
+            } ?: TimerState.IDLE
 
-            // Restore medals from comma-separated strings
-            val medals = if (savedSession.medalsValues.isNotEmpty() && savedSession.medalsTypes.isNotEmpty()) {
-                val values = savedSession.medalsValues.split(",").mapNotNull { it.toIntOrNull() }
-                val types = savedSession.medalsTypes.split(",").mapNotNull { it.toIntOrNull() }
-                values.zip(types).map { (value, typeOrdinal) ->
-                    Medal(value, MedalType.values().getOrNull(typeOrdinal) ?: MedalType.MINUTES)
-                }
-            } else {
-                emptyList()
-            }
-
-            // Restore discrete task level
-            val discreteTaskLevel = DiscreteTaskLevel.values().getOrNull(savedSession.discreteTaskLevel) ?: DiscreteTaskLevel.EASY
-
-            // Update state with restored values
-            focusUiState = focusUiState.copy(
-                currentTime = savedSession.currentTime,
-                timerState = savedTimerState,
-                timerStarted = savedSession.timerStarted,
-                medals = medals,
-                clockFaceMins = savedSession.clockFaceMins,
-                isDiscreteMode = savedSession.isDiscreteMode,
-                currentTaskLevel = discreteTaskLevel
-            )
-
-            // Handle timer that was RUNNING when process died - auto-pause
             if (savedTimerState == TimerState.RUNNING) {
-                focusUiState = focusUiState.copy(timerState = TimerState.PAUSED)
-                Log.d("FocusViewModel", "Timer was RUNNING, auto-paused on restoration")
-            }
+                // Calculate total elapsed time (includes process death period)
+                val totalElapsedTime = SystemClock.elapsedRealtime() - startTimestamp
 
-            Log.d("FocusViewModel", "Restored state: currentTime=${savedSession.currentTime}, timerState=$savedTimerState, medals=${medals.size}")
+                // Restore saved settings
+                val savedTimerStarted = savedStateHandle[KEY_TIMER_STARTED] ?: false
+                val savedClockFaceMins = savedStateHandle[KEY_CLOCK_FACE_MINS] ?: 30f
+                val isDiscreteMode = savedStateHandle[KEY_IS_DISCRETE_MODE] ?: false
+                val discreteTaskLevel = savedStateHandle.get<Int>(KEY_DISCRETE_TASK_LEVEL)?.let { ordinal ->
+                    DiscreteTaskLevel.values().getOrNull(ordinal)
+                } ?: DiscreteTaskLevel.EASY
+
+                // MEDAL CALCULATION: Calculate medals for complete revolutions
+                val revolutionMillis = savedClockFaceMins * 60000f
+                val completeRevolutions = (totalElapsedTime / revolutionMillis).toInt()
+
+                // Restore existing medals
+                val existingMedals = restoreMedals()
+
+                // Award missed medals for revolutions during process death
+                val missedMedals = List(completeRevolutions - existingMedals.size) {
+                    Medal(savedClockFaceMins.toInt(), MedalType.MINUTES)
+                }.takeIf { it.size > 0 } ?: emptyList()
+
+                val allMedals = existingMedals + missedMedals
+
+                // Calculate remainder time (current partial revolution)
+                val remainderTime = totalElapsedTime % revolutionMillis.toLong()
+
+                // Update state with calculated values
+                focusUiState = focusUiState.copy(
+                    currentTime = remainderTime,
+                    timerState = TimerState.RUNNING,
+                    timerStarted = savedTimerStarted,
+                    medals = allMedals,
+                    clockFaceMins = savedClockFaceMins,
+                    isDiscreteMode = isDiscreteMode,
+                    currentTaskLevel = discreteTaskLevel,
+                    currentTheme = ColorScheme.WORK
+                )
+
+                // Auto-restart timer job
+                startTimerJobFromTimestamp(startTimestamp)
+
+                Log.d("FocusViewModel", "Timer restored: totalElapsed=${totalElapsedTime}ms, revolutions=$completeRevolutions, medals=${allMedals.size}, remainder=${remainderTime}ms, auto-restarted")
+                return
+            }
+        }
+
+        // BACKWARD COMPATIBILITY: Old approach
+        if (!savedStateHandle.contains(KEY_CURRENT_TIME)) {
+            Log.d("FocusViewModel", "No saved state found - starting fresh")
+            return
+        }
+
+        val savedTime = savedStateHandle[KEY_CURRENT_TIME] ?: 0L
+        val savedTimerState = savedStateHandle.get<Int>(KEY_TIMER_STATE)?.let { ordinal ->
+            TimerState.values().getOrNull(ordinal)
+        } ?: TimerState.IDLE
+        val savedTimerStarted = savedStateHandle[KEY_TIMER_STARTED] ?: false
+        val medals = restoreMedals()
+        val clockFaceMins = savedStateHandle[KEY_CLOCK_FACE_MINS] ?: 30f
+        val isDiscreteMode = savedStateHandle[KEY_IS_DISCRETE_MODE] ?: false
+        val discreteTaskLevel = savedStateHandle.get<Int>(KEY_DISCRETE_TASK_LEVEL)?.let { ordinal ->
+            DiscreteTaskLevel.values().getOrNull(ordinal)
+        } ?: DiscreteTaskLevel.EASY
+
+        focusUiState = focusUiState.copy(
+            currentTime = savedTime,
+            timerState = if (savedTimerState == TimerState.RUNNING) TimerState.PAUSED else savedTimerState,
+            timerStarted = savedTimerStarted,
+            medals = medals,
+            clockFaceMins = clockFaceMins,
+            isDiscreteMode = isDiscreteMode,
+            currentTaskLevel = discreteTaskLevel
+        )
+
+        Log.d("FocusViewModel", "Restored using legacy approach")
+    }
+
+    private fun restoreMedals(): List<Medal> {
+        val medalsValues = savedStateHandle.get<IntArray>(KEY_MEDALS_VALUES)
+        val medalsTypes = savedStateHandle.get<IntArray>(KEY_MEDALS_TYPES)
+        return if (medalsValues != null && medalsTypes != null) {
+            medalsValues.zip(medalsTypes).map { (value, typeOrdinal) ->
+                Medal(value, MedalType.values()[typeOrdinal])
+            }
+        } else {
+            emptyList()
         }
     }
 
-    // Public method for lifecycle-triggered saves
-    fun saveStateImmediately() {
-        saveCurrentState()
+    private fun startTimerJobFromTimestamp(startTimestamp: Long) {
+        _timerJob.value = viewModelScope.launch {
+            while (isActive) {
+                val timestamp = savedStateHandle.get<Long>(KEY_START_TIMESTAMP) ?: return@launch
+                val elapsed = SystemClock.elapsedRealtime() - timestamp
+                updateTimerState(elapsed)
+                delay(1000)
+            }
+        }
     }
 
     private fun saveCurrentState() {
-        // Use runBlocking to ensure state is saved IMMEDIATELY (synchronously)
-        // This prevents state loss when process is killed before coroutine completes
-        runBlocking {
-            with(focusUiState) {
-                val session = FocusSession(
-                    id = 1, // Always 1 - single active session
-                    currentTime = currentTime,
-                    timerState = timerState.ordinal,
-                    timerStarted = timerStarted,
-                    medalsValues = medals.joinToString(",") { it.value.toString() },
-                    medalsTypes = medals.joinToString(",") { it.type.ordinal.toString() },
-                    clockFaceMins = clockFaceMins,
-                    isDiscreteMode = isDiscreteMode,
-                    discreteTaskLevel = currentTaskLevel.ordinal,
-                    lastUpdated = System.currentTimeMillis()
-                )
-                focusSessionRepository.saveSession(session)
-                Log.d("FocusViewModel", "Saved state to DB (BLOCKING): currentTime=${currentTime}, medals=${medals.size}, timestamp=${session.lastUpdated}")
-            }
+        with(focusUiState) {
+            // Save medals and settings
+            savedStateHandle[KEY_MEDALS_VALUES] = medals.map { it.value }.toIntArray()
+            savedStateHandle[KEY_MEDALS_TYPES] = medals.map { it.type.ordinal }.toIntArray()
+            savedStateHandle[KEY_CLOCK_FACE_MINS] = clockFaceMins
+            savedStateHandle[KEY_IS_DISCRETE_MODE] = isDiscreteMode
+            savedStateHandle[KEY_DISCRETE_TASK_LEVEL] = currentTaskLevel.ordinal
         }
+
+        Log.d("FocusViewModel", "Saved medals and settings: medals=${focusUiState.medals.size}")
     }
 
     private fun clearSavedState() {
-        viewModelScope.launch {
-            focusSessionRepository.clearActiveSession()
-            Log.d("FocusViewModel", "Cleared saved session from DB")
-        }
+        savedStateHandle.remove<Long>(KEY_START_TIMESTAMP)
+        savedStateHandle.remove<Long>(KEY_CURRENT_TIME)
+        savedStateHandle.remove<Int>(KEY_TIMER_STATE)
+        savedStateHandle.remove<Boolean>(KEY_TIMER_STARTED)
+        savedStateHandle.remove<IntArray>(KEY_MEDALS_VALUES)
+        savedStateHandle.remove<IntArray>(KEY_MEDALS_TYPES)
+        savedStateHandle.remove<Float>(KEY_CLOCK_FACE_MINS)
+        savedStateHandle.remove<Boolean>(KEY_IS_DISCRETE_MODE)
+        savedStateHandle.remove<Int>(KEY_DISCRETE_TASK_LEVEL)
+
+        Log.d("FocusViewModel", "Cleared saved state")
     }
 
     fun toggleFocusMode() {
@@ -207,8 +276,6 @@ class FocusViewModel(
 
     // this is run when we click the start button.  it starts from scratch, or from pause.
     fun startTimer() {
-        var startTime: Long = 0L
-
         if (!focusUiState.timerStarted) {       // sets 'true' start time when first timer is begun
             focusUiState = focusUiState.copy(   // start time is otherwise set to start of opening focus mode
                 timerStarted = true,
@@ -221,25 +288,24 @@ class FocusViewModel(
                 soundPlayer.playSound(R.raw.countdown_start)
             }
         }
-        // if coming from a paused state, we accrue previous time to the start time.
-        if (focusUiState.timerState == TimerState.PAUSED) {
-            val previousElapsedTime = focusUiState.currentTime
-            startTime = System.currentTimeMillis() - previousElapsedTime
-        } else startTime = System.currentTimeMillis()
 
-        Log.d("Timer","starting timer @ ${startTime}")
-
-        // make the timer tick by creating a timer job within a separate co-routine
-        _timerJob.value = viewModelScope.launch {
-            while (isActive) {
-                val currentTime = System.currentTimeMillis()
-                //Log.d("Timer","currentTime = ${currentTime}")
-                val elapsedTime = currentTime - startTime
-                //Log.d("Timer","elapsed time = ${elapsedTime}")
-                updateTimerState(elapsedTime)
-                delay(1000)
-            }
+        // Calculate start timestamp using monotonic clock
+        val startTimestamp = if (focusUiState.timerState == TimerState.PAUSED) {
+            // If resuming from pause, calculate when timer originally started
+            SystemClock.elapsedRealtime() - focusUiState.currentTime
+        } else {
+            // Starting fresh
+            SystemClock.elapsedRealtime()
         }
+
+        // Save start timestamp immediately (BEFORE any backgrounding)
+        savedStateHandle[KEY_START_TIMESTAMP] = startTimestamp
+        savedStateHandle[KEY_TIMER_STATE] = TimerState.RUNNING.ordinal
+
+        Log.d("Timer","starting timer @ ${startTimestamp}")
+
+        // Start timer job using the new helper function
+        startTimerJobFromTimestamp(startTimestamp)
 
         focusUiState = focusUiState.copy(
             timerState = TimerState.RUNNING,
@@ -324,9 +390,6 @@ class FocusViewModel(
         }
     }
 
-    // Track last save time to avoid saving every second
-    private var lastSaveTime = 0L
-
     // runs every second while the clock is ticking.
     // calculates the current time and the progress position of the ticking 'pie'
     private fun updateTimerState(elapsedTime: Long) {
@@ -347,12 +410,6 @@ class FocusViewModel(
             currentTime = elapsedTime,
             clockProgress = progress
         )
-
-        // Save state every 5 seconds to keep SavedStateHandle up-to-date
-        if (elapsedTime - lastSaveTime >= 5000) {
-            saveCurrentState()
-            lastSaveTime = elapsedTime
-        }
 
         if (timerSettingsState.usePomodoro) {
 
@@ -391,6 +448,18 @@ class FocusViewModel(
 
     fun pauseTimer() {
         Log.d("Timer","pausing timer... ")
+
+        // Calculate and save current elapsed time before pausing
+        val startTimestamp = savedStateHandle.get<Long>(KEY_START_TIMESTAMP)
+        if (startTimestamp != null) {
+            val elapsedTime = SystemClock.elapsedRealtime() - startTimestamp
+            savedStateHandle[KEY_CURRENT_TIME] = elapsedTime
+        }
+
+        // Remove start timestamp since we're no longer running
+        savedStateHandle.remove<Long>(KEY_START_TIMESTAMP)
+        savedStateHandle[KEY_TIMER_STATE] = TimerState.PAUSED.ordinal
+
         // timer state is used to determine state of start/pause button
         focusUiState = focusUiState.copy(
             timerState = TimerState.PAUSED,
