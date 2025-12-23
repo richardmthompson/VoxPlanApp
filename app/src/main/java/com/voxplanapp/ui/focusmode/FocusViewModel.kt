@@ -103,6 +103,34 @@ class FocusViewModel(
         restoreSavedState()
     }
 
+    private fun saveCurrentState() {
+        with(focusUiState) {
+            // Save medals and settings
+            savedStateHandle[KEY_MEDALS_VALUES] = medals.map { it.value }.toIntArray()
+            savedStateHandle[KEY_MEDALS_TYPES] = medals.map { it.type.ordinal }.toIntArray()
+            // clockFaceMins is how many minutes are on the clock face
+            savedStateHandle[KEY_CLOCK_FACE_MINS] = clockFaceMins
+            savedStateHandle[KEY_IS_DISCRETE_MODE] = isDiscreteMode
+            savedStateHandle[KEY_DISCRETE_TASK_LEVEL] = currentTaskLevel.ordinal
+        }
+
+        Log.d("FocusViewModel", "Saved medals and settings: medals=${focusUiState.medals.size}")
+    }
+
+    private fun clearSavedState() {
+        savedStateHandle.remove<Long>(KEY_START_TIMESTAMP)
+        savedStateHandle.remove<Long>(KEY_CURRENT_TIME)
+        savedStateHandle.remove<Int>(KEY_TIMER_STATE)
+        savedStateHandle.remove<Boolean>(KEY_TIMER_STARTED)
+        savedStateHandle.remove<IntArray>(KEY_MEDALS_VALUES)
+        savedStateHandle.remove<IntArray>(KEY_MEDALS_TYPES)
+        savedStateHandle.remove<Float>(KEY_CLOCK_FACE_MINS)
+        savedStateHandle.remove<Boolean>(KEY_IS_DISCRETE_MODE)
+        savedStateHandle.remove<Int>(KEY_DISCRETE_TASK_LEVEL)
+
+        Log.d("FocusViewModel", "Cleared saved state")
+    }
+
     private fun restoreSavedState() {
         // Check for start timestamp approach
         val startTimestamp = savedStateHandle.get<Long>(KEY_START_TIMESTAMP)
@@ -115,6 +143,7 @@ class FocusViewModel(
 
             if (savedTimerState == TimerState.RUNNING) {
                 // Calculate total elapsed time (includes process death period)
+                // This way we re-calculate everything so even if the process dies, the time and medals remains accurate
                 val totalElapsedTime = SystemClock.elapsedRealtime() - startTimestamp
 
                 // Restore saved settings
@@ -132,12 +161,15 @@ class FocusViewModel(
                 // Restore existing medals
                 val existingMedals = restoreMedals()
 
-                // Award missed medals for revolutions during process death
-                val missedMedals = List(completeRevolutions - existingMedals.size) {
+                // Award NEW medals for complete revolutions during process death
+                // Note: completeRevolutions represents NEW revolutions since last medal
+                // (startTimestamp resets after each medal, so this is additional medals)
+                val newMedalsEarned = completeRevolutions
+                val newMedals = List(newMedalsEarned) {
                     Medal(savedClockFaceMins.toInt(), MedalType.MINUTES)
-                }.takeIf { it.size > 0 } ?: emptyList()
+                }
 
-                val allMedals = existingMedals + missedMedals
+                val allMedals = existingMedals + newMedals
 
                 // Calculate remainder time (current partial revolution)
                 val remainderTime = totalElapsedTime % revolutionMillis.toLong()
@@ -214,33 +246,6 @@ class FocusViewModel(
                 delay(1000)
             }
         }
-    }
-
-    private fun saveCurrentState() {
-        with(focusUiState) {
-            // Save medals and settings
-            savedStateHandle[KEY_MEDALS_VALUES] = medals.map { it.value }.toIntArray()
-            savedStateHandle[KEY_MEDALS_TYPES] = medals.map { it.type.ordinal }.toIntArray()
-            savedStateHandle[KEY_CLOCK_FACE_MINS] = clockFaceMins
-            savedStateHandle[KEY_IS_DISCRETE_MODE] = isDiscreteMode
-            savedStateHandle[KEY_DISCRETE_TASK_LEVEL] = currentTaskLevel.ordinal
-        }
-
-        Log.d("FocusViewModel", "Saved medals and settings: medals=${focusUiState.medals.size}")
-    }
-
-    private fun clearSavedState() {
-        savedStateHandle.remove<Long>(KEY_START_TIMESTAMP)
-        savedStateHandle.remove<Long>(KEY_CURRENT_TIME)
-        savedStateHandle.remove<Int>(KEY_TIMER_STATE)
-        savedStateHandle.remove<Boolean>(KEY_TIMER_STARTED)
-        savedStateHandle.remove<IntArray>(KEY_MEDALS_VALUES)
-        savedStateHandle.remove<IntArray>(KEY_MEDALS_TYPES)
-        savedStateHandle.remove<Float>(KEY_CLOCK_FACE_MINS)
-        savedStateHandle.remove<Boolean>(KEY_IS_DISCRETE_MODE)
-        savedStateHandle.remove<Int>(KEY_DISCRETE_TASK_LEVEL)
-
-        Log.d("FocusViewModel", "Cleared saved state")
     }
 
     fun toggleFocusMode() {
