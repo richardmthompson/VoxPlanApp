@@ -158,18 +158,19 @@ class FocusViewModel(
                         DiscreteTaskLevel.values().getOrNull(ordinal)
                     } ?: DiscreteTaskLevel.EASY
 
-                // MEDAL CALCULATION: Calculate medals for complete revolutions
+                // MEDAL CALCULATION: Calculate medals for complete revolutions SINCE LAST MEDAL
+                // Note: startTimestamp is reset after each medal award (via resetTimer() + startTimer()),
+                // so totalElapsedTime represents time since the LAST medal, not total session time.
                 val revolutionMillis = savedClockFaceMins * 60000f
                 val completeRevolutions = (totalElapsedTime / revolutionMillis).toInt()
 
-                // Restore existing medals
+                // Restore existing medals (already awarded before process death)
                 val existingMedals = restoreMedals()
 
-                // Award NEW medals for complete revolutions during process death
-                // Only award medals for revolutions that occurred AFTER the last saved medal
-                // (existingMedals already contains medals awarded before process death)
-                val newMedalsEarned = (completeRevolutions - existingMedals.size).coerceAtLeast(0)
-                val newMedals = List(newMedalsEarned) {
+                // Award medals for complete revolutions that occurred during process death
+                // Since startTimestamp was reset after the last medal, completeRevolutions
+                // already represents NEW revolutions only - don't subtract existingMedals.size
+                val newMedals = List(completeRevolutions) {
                     Medal(savedClockFaceMins.toInt(), MedalType.MINUTES)
                 }
 
@@ -200,7 +201,7 @@ class FocusViewModel(
 
                 Log.d(
                     "FocusViewModel",
-                    "Timer restored: totalElapsed=${totalElapsedTime}ms, revolutions=$completeRevolutions, medals=${allMedals.size}, remainder=${remainderTime}ms, auto-restarted"
+                    "Timer restored: elapsedSinceLastMedal=${totalElapsedTime}ms, newRevolutions=$completeRevolutions, existingMedals=${existingMedals.size}, totalMedals=${allMedals.size}, remainder=${remainderTime}ms"
                 )
                 return
             }
