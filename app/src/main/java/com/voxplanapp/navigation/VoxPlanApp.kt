@@ -248,24 +248,26 @@ private val items = listOf(
         unselectedIcon = Icons.Outlined.List,
         route = VoxPlanScreen.Main.route
     ),
-    BottomNavigationItem(
-        title = "Daily",
-        selectedIcon = Icons.Filled.Today,
-        unselectedIcon = Icons.Outlined.Today,
-        route = VoxPlanScreen.Daily.createRouteWithDate()
-    ),
+    // HIDDEN FOR MVP - Re-enable post-launch
+    // BottomNavigationItem(
+    //     title = "Daily",
+    //     selectedIcon = Icons.Filled.Today,
+    //     unselectedIcon = Icons.Outlined.Today,
+    //     route = VoxPlanScreen.Daily.createRouteWithDate()
+    // ),
     BottomNavigationItem(
         title = "Progress",
         selectedIcon = Icons.Filled.Timeline,
         unselectedIcon = Icons.Outlined.Timeline,
         route = VoxPlanScreen.Progress.route
-    ),
-    BottomNavigationItem(
-        title = "Schedule",
-        selectedIcon = Icons.Filled.DateRange,
-        unselectedIcon = Icons.Outlined.DateRange,
-        route = VoxPlanScreen.DaySchedule.createRouteWithDate()
     )
+    // HIDDEN FOR MVP - Re-enable post-launch
+    // BottomNavigationItem(
+    //     title = "Schedule",
+    //     selectedIcon = Icons.Filled.DateRange,
+    //     unselectedIcon = Icons.Outlined.DateRange,
+    //     route = VoxPlanScreen.DaySchedule.createRouteWithDate()
+    // )
 )
 
 @Composable

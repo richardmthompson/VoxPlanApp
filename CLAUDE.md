@@ -92,6 +92,18 @@ The skill returns plan location and confidence. Your job:
 - Skip reading the plan
 - Modify plan structures (PLANNER only)
 
+## Scratchpad Location (Standardized)
+
+**All scratchpads MUST be created in**: `$CURRENT_PROJECT_ROOT/scratchpad/`
+
+**Format**: `scratchpad/<task-description>_<DD-MMM-YY>/plan.md`
+
+**Example**: `scratchpad/focus-medal-bugs_26-Dec-25/plan.md`
+
+**NOT in**: `.claude/scratchpad/` (reserved for Claude Code configuration only)
+
+This ensures all coding agents use the same location for planning artifacts.
+
 ---
 
 ## Task Tracking with Beads

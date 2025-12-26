@@ -114,23 +114,29 @@ class DailyViewModel(
             val date = uiState.value.date
             // using first as getAllActiveQuotas returns a flow
             val quotas = quotaRepository.getAllActiveQuotas(date).first()
+            val existingDailyTasks = uiState.value.dailyTasks
 
-            // create a daily for each quota'd goal
+            // create a daily for each quota'd goal, but only if it doesn't already exist
             quotas.forEach { quota ->
-                // get the source goal the quota refers to, from the todo repository.
-                val goal = todoRepository.getItemStream(quota.goalId).first()
-                // create the event, but with no start or end time.
-                if (goal != null) {
-                    val event = Event(
-                        goalId = quota.goalId,
-                        title = goal.title,
-                        startDate = date,
-                        quotaDuration = quota.dailyMinutes,     // add quota duration so we can show our duration display boxes
-                        scheduledDuration = 0,
-                        completedDuration = 0
-                        // Other fields with default/null values
-                    )
-                    eventRepository.insertEvent(event)
+                // Check if this quota task already exists in dailies
+                val alreadyExists = existingDailyTasks.any { it.goalId == quota.goalId }
+
+                if (!alreadyExists) {
+                    // get the source goal the quota refers to, from the todo repository.
+                    val goal = todoRepository.getItemStream(quota.goalId).first()
+                    // create the event, but with no start or end time.
+                    if (goal != null) {
+                        val event = Event(
+                            goalId = quota.goalId,
+                            title = goal.title,
+                            startDate = date,
+                            quotaDuration = quota.dailyMinutes,     // add quota duration so we can show our duration display boxes
+                            scheduledDuration = 0,
+                            completedDuration = 0
+                            // Other fields with default/null values
+                        )
+                        eventRepository.insertEvent(event)
+                    }
                 }
             }
         }

@@ -109,15 +109,17 @@ class FocusViewModel(
     private fun saveCurrentState() {
         with(focusUiState) {
             // Save medals and settings
-            savedStateHandle[KEY_MEDALS_VALUES] = medals.map { it.value }.toIntArray()
-            savedStateHandle[KEY_MEDALS_TYPES] = medals.map { it.type.ordinal }.toIntArray()
+            val valuesArray = medals.map { it.value }.toIntArray()
+            val typesArray = medals.map { it.type.ordinal }.toIntArray()
+            savedStateHandle[KEY_MEDALS_VALUES] = valuesArray
+            savedStateHandle[KEY_MEDALS_TYPES] = typesArray
             // clockFaceMins is how many minutes are on the clock face
             savedStateHandle[KEY_CLOCK_FACE_MINS] = clockFaceMins
             savedStateHandle[KEY_IS_DISCRETE_MODE] = isDiscreteMode
             savedStateHandle[KEY_DISCRETE_TASK_LEVEL] = currentTaskLevel.ordinal
-        }
 
-        Log.d("FocusViewModel", "Saved medals and settings: medals=${focusUiState.medals.size}")
+            Log.d("FocusViewModel", "saveCurrentState: saved ${medals.size} medals, values=${valuesArray.contentToString()}, types=${typesArray.contentToString()}")
+        }
     }
 
     private fun clearSavedState() {
@@ -166,6 +168,8 @@ class FocusViewModel(
 
                 // Restore existing medals (already awarded before process death)
                 val existingMedals = restoreMedals()
+                Log.d("FocusViewModel", "=== PROCESS DEATH RECOVERY ===")
+                Log.d("FocusViewModel", "EXISTING MEDALS (from SavedStateHandle): count=${existingMedals.size}, medals=$existingMedals")
 
                 // Award medals for complete revolutions that occurred during process death
                 // Since startTimestamp was reset after the last medal, completeRevolutions
@@ -173,8 +177,10 @@ class FocusViewModel(
                 val newMedals = List(completeRevolutions) {
                     Medal(savedClockFaceMins.toInt(), MedalType.MINUTES)
                 }
+                Log.d("FocusViewModel", "NEW MEDALS (earned during process death): count=${newMedals.size}, medals=$newMedals")
 
                 val allMedals = existingMedals + newMedals
+                Log.d("FocusViewModel", "TOTAL MEDALS (existing + new): count=${allMedals.size}, medals=$allMedals")
 
                 // Calculate remainder time (current partial revolution)
                 val remainderTime = totalElapsedTime % revolutionMillis.toLong()
@@ -190,6 +196,7 @@ class FocusViewModel(
                     currentTaskLevel = discreteTaskLevel,
                     currentTheme = ColorScheme.WORK
                 )
+                Log.d("FocusViewModel", "STATE UPDATED: focusUiState.medals.size=${focusUiState.medals.size}")
 
                 // Update startTimestamp to reflect current position (remainder time only)
                 // This ensures the timer continues from the correct point after process death
@@ -201,7 +208,7 @@ class FocusViewModel(
 
                 Log.d(
                     "FocusViewModel",
-                    "Timer restored: elapsedSinceLastMedal=${totalElapsedTime}ms, newRevolutions=$completeRevolutions, existingMedals=${existingMedals.size}, totalMedals=${allMedals.size}, remainder=${remainderTime}ms"
+                    "=== RECOVERY COMPLETE: elapsedSinceLastMedal=${totalElapsedTime}ms, revolutionMillis=${revolutionMillis}ms, newRevolutions=$completeRevolutions, remainder=${remainderTime}ms ==="
                 )
                 return
             }
@@ -241,11 +248,15 @@ class FocusViewModel(
     private fun restoreMedals(): List<Medal> {
         val medalsValues = savedStateHandle.get<IntArray>(KEY_MEDALS_VALUES)
         val medalsTypes = savedStateHandle.get<IntArray>(KEY_MEDALS_TYPES)
+        Log.d("FocusViewModel", "restoreMedals: values=${medalsValues?.contentToString()}, types=${medalsTypes?.contentToString()}")
         return if (medalsValues != null && medalsTypes != null) {
-            medalsValues.zip(medalsTypes).map { (value, typeOrdinal) ->
+            val medals = medalsValues.zip(medalsTypes).map { (value, typeOrdinal) ->
                 Medal(value, MedalType.values()[typeOrdinal])
             }
+            Log.d("FocusViewModel", "restoreMedals: restored ${medals.size} medals")
+            medals
         } else {
+            Log.d("FocusViewModel", "restoreMedals: no medals found in savedStateHandle")
             emptyList()
         }
     }

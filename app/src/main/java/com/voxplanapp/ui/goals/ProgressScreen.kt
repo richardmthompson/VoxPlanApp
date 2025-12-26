@@ -84,6 +84,7 @@ fun ProgressScreen(
             )
         }
 
+        /*
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -98,6 +99,8 @@ fun ProgressScreen(
                 completedDays = uiState.completedDays
             )
         }
+
+         */
 
         // Daily Progress
         LazyColumn(
