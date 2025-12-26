@@ -844,8 +844,8 @@ fun MedalItemWithCount(value: Int, type: MedalType, count: Int) {
         if (count > 1) {
             Text(
                 text = "× $count",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = Color(0xFFFFD700)  // Gold color to emphasize multiplier
             )
         }
     }
