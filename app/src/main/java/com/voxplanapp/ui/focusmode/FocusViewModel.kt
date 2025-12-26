@@ -46,7 +46,7 @@ class FocusViewModel(
     private val quotaRepository: QuotaRepository,
     private val sharedViewModel: SharedViewModel,
     private val soundPlayer: SoundPlayer
-): ViewModel() {
+) : ViewModel() {
 
     companion object {
         private const val KEY_START_TIMESTAMP = "focus_start_timestamp"
@@ -62,14 +62,17 @@ class FocusViewModel(
 
     // process either the goalId or the eventId, depending on whether we navigate from
     // the GoalEditScreen or the DayScheduler directly.
-    private val goalId: Int? = savedStateHandle.get<String>(VoxPlanScreen.FocusMode.goalIdArg)?.toIntOrNull()
-    private val eventId: Int? = savedStateHandle.get<String>(VoxPlanScreen.FocusMode.eventIdArg)?.toIntOrNull()
+    private val goalId: Int? =
+        savedStateHandle.get<String>(VoxPlanScreen.FocusMode.goalIdArg)?.toIntOrNull()
+    private val eventId: Int? =
+        savedStateHandle.get<String>(VoxPlanScreen.FocusMode.eventIdArg)?.toIntOrNull()
 
     // set up state variables
 
     // goalUiState is separate to other state variables as it shouldn't be changed
     var goalUiState by mutableStateOf<GoalWithSubGoals?>(null)
         private set
+
     // same with eventUiState
     var eventUiState by mutableStateOf<Event?>(null)
         private set
@@ -150,9 +153,10 @@ class FocusViewModel(
                 val savedTimerStarted = savedStateHandle[KEY_TIMER_STARTED] ?: false
                 val savedClockFaceMins = savedStateHandle[KEY_CLOCK_FACE_MINS] ?: 30f
                 val isDiscreteMode = savedStateHandle[KEY_IS_DISCRETE_MODE] ?: false
-                val discreteTaskLevel = savedStateHandle.get<Int>(KEY_DISCRETE_TASK_LEVEL)?.let { ordinal ->
-                    DiscreteTaskLevel.values().getOrNull(ordinal)
-                } ?: DiscreteTaskLevel.EASY
+                val discreteTaskLevel =
+                    savedStateHandle.get<Int>(KEY_DISCRETE_TASK_LEVEL)?.let { ordinal ->
+                        DiscreteTaskLevel.values().getOrNull(ordinal)
+                    } ?: DiscreteTaskLevel.EASY
 
                 // MEDAL CALCULATION: Calculate medals for complete revolutions
                 val revolutionMillis = savedClockFaceMins * 60000f
@@ -162,9 +166,9 @@ class FocusViewModel(
                 val existingMedals = restoreMedals()
 
                 // Award NEW medals for complete revolutions during process death
-                // Note: completeRevolutions represents NEW revolutions since last medal
-                // (startTimestamp resets after each medal, so this is additional medals)
-                val newMedalsEarned = completeRevolutions
+                // Only award medals for revolutions that occurred AFTER the last saved medal
+                // (existingMedals already contains medals awarded before process death)
+                val newMedalsEarned = (completeRevolutions - existingMedals.size).coerceAtLeast(0)
                 val newMedals = List(newMedalsEarned) {
                     Medal(savedClockFaceMins.toInt(), MedalType.MINUTES)
                 }
@@ -186,10 +190,18 @@ class FocusViewModel(
                     currentTheme = ColorScheme.WORK
                 )
 
-                // Auto-restart timer job
-                startTimerJobFromTimestamp(startTimestamp)
+                // Update startTimestamp to reflect current position (remainder time only)
+                // This ensures the timer continues from the correct point after process death
+                val correctedStartTimestamp = SystemClock.elapsedRealtime() - remainderTime
+                savedStateHandle[KEY_START_TIMESTAMP] = correctedStartTimestamp
 
-                Log.d("FocusViewModel", "Timer restored: totalElapsed=${totalElapsedTime}ms, revolutions=$completeRevolutions, medals=${allMedals.size}, remainder=${remainderTime}ms, auto-restarted")
+                // Auto-restart timer job with corrected timestamp
+                startTimerJobFromTimestamp(correctedStartTimestamp)
+
+                Log.d(
+                    "FocusViewModel",
+                    "Timer restored: totalElapsed=${totalElapsedTime}ms, revolutions=$completeRevolutions, medals=${allMedals.size}, remainder=${remainderTime}ms, auto-restarted"
+                )
                 return
             }
         }
@@ -282,10 +294,11 @@ class FocusViewModel(
     // this is run when we click the start button.  it starts from scratch, or from pause.
     fun startTimer() {
         if (!focusUiState.timerStarted) {       // sets 'true' start time when first timer is begun
-            focusUiState = focusUiState.copy(   // start time is otherwise set to start of opening focus mode
-                timerStarted = true,
-                startTime = LocalTime.now()
-            )
+            focusUiState =
+                focusUiState.copy(   // start time is otherwise set to start of opening focus mode
+                    timerStarted = true,
+                    startTime = LocalTime.now()
+                )
         }
         if (focusUiState.timerState == TimerState.IDLE) {       // if timer is starting from idle, play sound
             viewModelScope.launch {
@@ -307,7 +320,7 @@ class FocusViewModel(
         savedStateHandle[KEY_START_TIMESTAMP] = startTimestamp
         savedStateHandle[KEY_TIMER_STATE] = TimerState.RUNNING.ordinal
 
-        Log.d("Timer","starting timer @ ${startTimestamp}")
+        Log.d("Timer", "starting timer @ ${startTimestamp}")
 
         // Start timer job using the new helper function
         startTimerJobFromTimestamp(startTimestamp)
@@ -340,7 +353,11 @@ class FocusViewModel(
                 //Log.d("TAG", "Is quota active for goal ${goalId} date? ${if (quota != null) { quotaRepository.isQuotaActiveForDate(quota, LocalDate.now())} else { "" }}")
 
                 // Only process if quota exists and is active for today
-                if (quota == null || !quotaRepository.isQuotaActiveForDate(quota, LocalDate.now())) {
+                if (quota == null || !quotaRepository.isQuotaActiveForDate(
+                        quota,
+                        LocalDate.now()
+                    )
+                ) {
                     return@combine QuotaProgressData(
                         quota = null,
                         bankedMinutes = 0,
@@ -444,15 +461,14 @@ class FocusViewModel(
         else if (focusUiState.timerState == TimerState.PAUSED) {
             startTimer()
             // todo: play sound for starting timer from pause
-        }
-        else {
+        } else {
             pauseTimer()
             // todo: play sound for pausing timer
         }
     }
 
     fun pauseTimer() {
-        Log.d("Timer","pausing timer... ")
+        Log.d("Timer", "pausing timer... ")
 
         // Calculate and save current elapsed time before pausing
         val startTimestamp = savedStateHandle.get<Long>(KEY_START_TIMESTAMP)
@@ -477,8 +493,45 @@ class FocusViewModel(
         saveCurrentState()
     }
 
-    fun updateClockFaceMinutes(minutes: Float) {
-        focusUiState = focusUiState.copy(clockFaceMins = minutes)
+    fun updateClockFaceMinutes(newMinutes: Float) {
+        val oldMinutes = focusUiState.clockFaceMins
+
+        // If timer is running and minutes changed, calculate medals at new setting
+        if (focusUiState.timerState == TimerState.RUNNING && newMinutes != oldMinutes) {
+            val startTimestamp = savedStateHandle.get<Long>(KEY_START_TIMESTAMP)
+            if (startTimestamp != null) {
+                val elapsedMillis = SystemClock.elapsedRealtime() - startTimestamp
+                val newRevolutionMillis = newMinutes * 60000f
+
+                // Calculate how many complete revolutions at the NEW setting
+                val medalsEarned = (elapsedMillis / newRevolutionMillis).toInt()
+
+                // Award medals for complete revolutions
+                repeat(medalsEarned) {
+                    awardMedal(Medal(newMinutes.toInt(), MedalType.MINUTES))
+                }
+
+                // Calculate remainder and update timer position
+                val remainderMillis = elapsedMillis % newRevolutionMillis.toLong()
+
+                // Update startTimestamp to reflect medals awarded
+                val newStartTimestamp = SystemClock.elapsedRealtime() - remainderMillis
+                savedStateHandle[KEY_START_TIMESTAMP] = newStartTimestamp
+
+                // Update current time to show remainder
+                focusUiState = focusUiState.copy(
+                    currentTime = remainderMillis,
+                    clockFaceMins = newMinutes
+                )
+
+                Log.d("FocusViewModel", "Revolution changed: $oldMinutes -> $newMinutes, awarded $medalsEarned medals, remainder=${remainderMillis}ms")
+                saveCurrentState()
+                return
+            }
+        }
+
+        // Default case: just update the setting
+        focusUiState = focusUiState.copy(clockFaceMins = newMinutes)
         saveCurrentState()
     }
 
@@ -495,7 +548,10 @@ class FocusViewModel(
             // add medal to vault
             awardMedal(Medal(minutes, MedalType.MINUTES))
 
-            Log.d("TimeBank", "seconds on clock: ${totalSeconds}, minutes: ${minutes}, rem. secs: ${remainingSeconds}")
+            Log.d(
+                "TimeBank",
+                "seconds on clock: ${totalSeconds}, minutes: ${minutes}, rem. secs: ${remainingSeconds}"
+            )
 
             // remove minutes from focusUiState current time
             val newCurrentTime = remainingSeconds * 1000L
@@ -510,7 +566,7 @@ class FocusViewModel(
             // pause timer
             pauseTimer()
         } else {
-            Log.d("TimeBank","No full minutes to bank.")
+            Log.d("TimeBank", "No full minutes to bank.")
         }
     }
 
@@ -562,7 +618,7 @@ class FocusViewModel(
             while (true) {
                 delay(50)   // update every 50 millisecs
                 elapsedTime += 50
-                val progress = (elapsedTime.toFloat() / totalTime).coerceIn(0f,1f)
+                val progress = (elapsedTime.toFloat() / totalTime).coerceIn(0f, 1f)
                 updateDiscreteTaskProgress(progress)
 
                 if (elapsedTime >= totalTime) {
@@ -589,11 +645,12 @@ class FocusViewModel(
         if (medal != null) {
             emptyMedalList()
             awardMedal(medal)
-        } else {
-            focusUiState = focusUiState.copy(
-                discreteTaskState = DiscreteTaskState.IDLE
-            )
         }
+
+        // Always reset to IDLE so next discrete task can start
+        focusUiState = focusUiState.copy(
+            discreteTaskState = DiscreteTaskState.IDLE
+        )
     }
 
     private fun updateDiscreteTaskProgress(progress: Float) {
@@ -630,7 +687,7 @@ class FocusViewModel(
         focusUiState = focusUiState.copy(
             medals = focusUiState.medals + medal
         )
-        Log.d("focusmode","medals: ${focusUiState.medals} just added 1 x $medal")
+        Log.d("focusmode", "medals: ${focusUiState.medals} just added 1 x $medal")
         saveCurrentState()
     }
 
@@ -638,30 +695,24 @@ class FocusViewModel(
         val medalTime = focusUiState.medals.sumOf { it.value }
 
         if (medalTime > 0) {
-            viewModelScope.launch {
-                val goalId = goalUiState?.goal?.id ?: return@launch
-                // TimeBank is source of truth for ad-hoc focus sessions
-                timeBankRepository.addTimeBankEntry(goalId, medalTime)
+            val currentGoalId = goalUiState?.goal?.id
+
+            if (currentGoalId != null) {
+                viewModelScope.launch {
+                    timeBankRepository.addTimeBankEntry(currentGoalId, medalTime)
+                }
+                focusUiState = focusUiState.copy(medals = emptyList())
+                soundPlayer.playSound(R.raw.chaching)
+                Log.d("TimeBank", "Banked $medalTime minutes into goalId $currentGoalId")
+            } else {
+                Log.d("TimeBank", "Bank failed - no goal id")
             }
-
-            // clear medals
-            focusUiState = focusUiState.copy(medals = emptyList())
-            soundPlayer.playSound(R.raw.chaching)
-
-            // log what happened
-            if (goalId != null) Log.d("TimeBank", "Banked $medalTime minutes into goalId $goalId?")
-            else Log.d("TimeBank", "Trying to bank time failed, no goal id")
-
-            // Clear saved state (session complete)
-            clearSavedState()
-
-            // Update goal or event with accrued time
         }
     }
 
     /** focus mode creates an event automatically on exit, as long as >5m focus has been achieved
      *
-      */
+     */
 
     fun onExit() {
         createOrUpdateEvent()
@@ -715,18 +766,21 @@ class FocusViewModel(
             // set up our focusUiState around the event if we've come from scheduler.
             val event = eventRepository.getEvent(eventId)
             event?.let { event ->
-                Log.d("FocusViewModel","Retrieved event id ${event.id}")
+                Log.d("FocusViewModel", "Retrieved event id ${event.id}")
                 focusUiState = focusUiState.copy(
                     isFromEvent = true,
                     eventId = eventId,
                 )
                 eventUiState = event
-                Log.d("FocusViewModel","set eventUistate @ startTime ${event.startTime}.  About to load associated goal data.")
+                Log.d(
+                    "FocusViewModel",
+                    "set eventUistate @ startTime ${event.startTime}.  About to load associated goal data."
+                )
 
                 // now load the associated goal.
                 loadGoalData(event.goalId)
             } ?: run {
-                Log.d("FocusViewModel","[ERROR] No EVENT found, quitting")
+                Log.d("FocusViewModel", "[ERROR] No EVENT found, quitting")
                 loadErrorScreen("Event not found")
             }
         }
@@ -742,12 +796,15 @@ class FocusViewModel(
             // do error checking in case we had a problem loading the goal.
             // in which case, we can't do this screen.
             goalWithSubGoals.let {
-                Log.d("FocusViewModel", "loadGoalData: we have a goalUiState! \"${goalWithSubGoals?.goal?.title}\"")
+                Log.d(
+                    "FocusViewModel",
+                    "loadGoalData: we have a goalUiState! \"${goalWithSubGoals?.goal?.title}\""
+                )
                 // set the loading state to false here, because we've successfully loaded a goal.
                 goalUiState = it
                 focusUiState = focusUiState.copy(isLoading = false)
             } ?: run {
-                Log.d("FocusViewModel","[ERROR] No GOAL found, quitting")
+                Log.d("FocusViewModel", "[ERROR] No GOAL found, quitting")
                 loadErrorScreen("Can't find a goal")
             }
         }
@@ -776,8 +833,10 @@ class FocusViewModel(
         when {
             // if we try to focus mode an event on different day, quit
             event.startDate != dateNow -> {
-                loadErrorScreen("Trying to run focus mode on an event for a different day to today.\n" +
-                        "Event date: ${event.startDate}.  Today: ${dateNow}")
+                loadErrorScreen(
+                    "Trying to run focus mode on an event for a different day to today.\n" +
+                            "Event date: ${event.startDate}.  Today: ${dateNow}"
+                )
                 return
             }
             // we're running focus mode within the prescribed timeslot, so set vars.
@@ -787,9 +846,12 @@ class FocusViewModel(
                     date = dateNow
                 )
             }
+
             else -> {
-                loadErrorScreen("Not within time-boundaries for designated event\n" +
-                        "Event start: ${event.startTime}, end: ${event.endTime}, Time Now: $timeNow")
+                loadErrorScreen(
+                    "Not within time-boundaries for designated event\n" +
+                            "Event start: ${event.startTime}, end: ${event.endTime}, Time Now: $timeNow"
+                )
                 return
             }
         }
@@ -819,9 +881,11 @@ class FocusViewModel(
 enum class TimerState {
     IDLE, RUNNING, PAUSED
 }
+
 enum class DiscreteTaskState {
     IDLE, COMPLETING, COMPLETED
 }
+
 enum class DiscreteTaskLevel(val text: String, val description: String, val color: Color) {
     EASY("EASY", "SMALL TASK", Color(0xFFFFEB3B)),
     CHALLENGE("CHALLENGE", "LARGE TASK", Color(0xFFFF9800)),
@@ -832,22 +896,23 @@ enum class DiscreteTaskLevel(val text: String, val description: String, val colo
 enum class MedalType {
     MINUTES, HOURS
 }
+
 enum class ColorScheme {
     WORK, REST
 }
 
 data class Medal(val value: Int, val type: MedalType)
 
-data class FocusUiState (
+data class FocusUiState(
     // focus screen general vars
     val isLoading: Boolean = true,
-    val error: String ?= null,
+    val error: String? = null,
     val currentTheme: ColorScheme = ColorScheme.REST,
 
     // useful data vars
     val eventId: Int? = null,
     val isFromEvent: Boolean = false,
-    val startTime : LocalTime? = null,
+    val startTime: LocalTime? = null,
     val endTime: LocalTime? = null,
     val date: LocalDate? = null,
     val timerStarted: Boolean = false, // tracks if we've started timing actual focus work.

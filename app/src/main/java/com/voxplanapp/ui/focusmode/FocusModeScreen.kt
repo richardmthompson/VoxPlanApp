@@ -768,12 +768,19 @@ fun MedalDisplay(medals: List<Medal>, modifier: Modifier = Modifier) {
         "Time Vault:",
         style = MaterialTheme.typography.headlineMedium,
     )
+
+    // Group medals by (value, type) and count occurrences
+    val groupedMedals = medals
+        .groupBy { it.value to it.type }
+        .map { (key, list) -> Triple(key.first, key.second, list.size) }
+        .sortedByDescending { it.first }  // Show higher values first
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center
     ) {
-        medals.forEach { medal ->
-            MedalItem(medal)
+        groupedMedals.forEach { (value, type, count) ->
+            MedalItemWithCount(value = value, type = type, count = count)
             Spacer(modifier = Modifier.width(MediumDp))
         }
     }
@@ -803,6 +810,44 @@ fun MedalItem(medal: Medal) {
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
             color = textColor
         )
+    }
+}
+
+@Composable
+fun MedalItemWithCount(value: Int, type: MedalType, count: Int) {
+    val (backgroundColor, borderColor, textColor) = when (type) {
+        MedalType.MINUTES -> Triple(Color(0xFFFFD700), Color(0xFFFF9800), Color.Black)
+        MedalType.HOURS -> Triple(Color(0xFF4CAF50), Color(0xFF2E7D32), Color.White)
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(if (type == MedalType.HOURS) RoundedCornerShape(8.dp) else CircleShape)
+                .background(backgroundColor)
+                .border(
+                    width = 2.dp,
+                    color = borderColor,
+                    shape = if (type == MedalType.HOURS) RoundedCornerShape(8.dp) else CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "${value}${if (type == MedalType.HOURS) "h" else "m"}",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = textColor
+            )
+        }
+
+        // Only show count if more than 1
+        if (count > 1) {
+            Text(
+                text = "× $count",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 
