@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -55,9 +56,14 @@ import androidx.navigation.compose.rememberNavController
 import com.voxplanapp.AppViewModelProvider
 import com.voxplanapp.R
 import com.voxplanapp.model.ActionMode
+import com.voxplanapp.ui.constants.AccentVariant
 import com.voxplanapp.ui.constants.ActivatedColor
 import com.voxplanapp.ui.constants.PrimaryColor
+import com.voxplanapp.ui.constants.PrimaryDarkColor
+import com.voxplanapp.ui.constants.PrimaryLightColor
 import com.voxplanapp.ui.constants.TertiaryBorderColor
+import com.voxplanapp.ui.constants.TertiaryVariant
+import com.voxplanapp.ui.constants.ToolbarIconColor
 import com.voxplanapp.ui.constants.TopAppBarBgColor
 import java.time.LocalDate
 
@@ -76,9 +82,11 @@ fun VoxPlanApp(
         navBackStackEntry?.destination?.route?.let { route ->
             when {
                 route.startsWith(VoxPlanScreen.Main.route) -> navigationViewModel.setSelectedItemIndex(0)
-                route.startsWith(VoxPlanScreen.Daily.route) -> navigationViewModel.setSelectedItemIndex(1)
-                route.startsWith(VoxPlanScreen.Progress.route) -> navigationViewModel.setSelectedItemIndex(2)
-                route.startsWith(VoxPlanScreen.DaySchedule.route) -> navigationViewModel.setSelectedItemIndex(3)
+                // Daily commented out for MVP - index 1 now belongs to Progress
+                route.startsWith(VoxPlanScreen.Progress.route) -> navigationViewModel.setSelectedItemIndex(1)
+                // Re-enable these when Daily/Schedule are restored:
+                // route.startsWith(VoxPlanScreen.Daily.route) -> navigationViewModel.setSelectedItemIndex(1)
+                // route.startsWith(VoxPlanScreen.DaySchedule.route) -> navigationViewModel.setSelectedItemIndex(3)
             }
         }
     }
@@ -117,7 +125,7 @@ fun VoxPlanTopAppBar(
         title = { Text(title, fontWeight = FontWeight.Bold) },
         modifier = modifier
             .padding(bottom = 0.dp)
-            .border(width = 1.dp, color = TertiaryBorderColor, shape = RoundedCornerShape(4.dp)),
+            .border(width = 1.dp, color = TertiaryBorderColor),
         scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = TopAppBarBgColor
@@ -278,7 +286,10 @@ fun BottomNavigationBar(
 
     val selectedItemIndex by viewModel.selectedItemIndex.collectAsState()
 
-    NavigationBar {
+    NavigationBar (
+        containerColor = PrimaryColor,
+        contentColor = PrimaryDarkColor,
+    ){
         items.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = selectedItemIndex == index,
@@ -297,13 +308,20 @@ fun BottomNavigationBar(
                 },
                 icon = {
                     Icon(
-                        imageVector =
+                    imageVector =
                         if (index == selectedItemIndex) item.selectedIcon
                         else item.unselectedIcon,
                         contentDescription = item.title
                     )
                 },
-                label = { Text(item.title) }
+                label = { Text(item.title) },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = PrimaryLightColor,
+                    selectedIconColor = PrimaryColor,
+                    selectedTextColor = PrimaryLightColor,
+                    unselectedIconColor = TertiaryVariant,
+                    unselectedTextColor = PrimaryLightColor
+                )
             )
         }
     }

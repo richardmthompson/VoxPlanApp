@@ -61,8 +61,10 @@ import com.voxplanapp.navigation.ReorderButtons
 import com.voxplanapp.navigation.VoxPlanTopAppBar
 import com.voxplanapp.shared.SharedViewModel
 import com.voxplanapp.ui.constants.ActivatedColor
+import com.voxplanapp.ui.constants.ContainerVariant
 import com.voxplanapp.ui.constants.OverlappingHeight
 import com.voxplanapp.ui.constants.PrimaryColor
+import com.voxplanapp.ui.constants.TertiaryBorderColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,10 +85,10 @@ fun MainScreen(
 
     Scaffold(
         modifier = modifier
-            .padding(top = 8.dp)
             .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = ContainerVariant,
         topBar = {
-            Column {
+            Column(modifier = Modifier.padding(top = 8.dp)) {
                 if (mainUiState.breadcrumbs.isEmpty()) {
                     PowerBar(
                         totalMinutes = todayTotalTime,
@@ -128,7 +130,7 @@ fun MainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = it.calculateTopPadding())
-                .padding(horizontal = 10.dp)
+                .padding(horizontal = 0.dp)
         ) {
 
             BreadcrumbNavigation(
@@ -139,8 +141,8 @@ fun MainScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(vertical = 2.dp)
+                    .background(ContainerVariant)
+                    .padding(bottom = 4.dp)
             )
 
             GoalListContainer(
@@ -163,7 +165,8 @@ fun MainScreen(
                     bottom = it.calculateBottomPadding(),
                     start = it.calculateStartPadding(LocalLayoutDirection.current),
                     end = it.calculateEndPadding(LocalLayoutDirection.current)
-                )
+                ),
+                modifier = modifier.padding(horizontal=10.dp)
             )
             }
     }

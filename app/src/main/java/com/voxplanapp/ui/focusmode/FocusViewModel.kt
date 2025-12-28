@@ -385,7 +385,12 @@ class FocusViewModel(
                     .sumOf { it.duration }
 
                 // Calculate Time Vault (medals) minutes
-                val vaultMinutes = currentFocusState.medals.sumOf { it.value }
+                val vaultMinutes = currentFocusState.medals.sumOf { medal ->
+                    when (medal.type) {
+                        MedalType.MINUTES -> medal.value
+                        MedalType.HOURS -> medal.value * 60
+                    }
+                }
 
                 // Calculate current timer minutes (currentTime is in milliseconds)
                 val timerMinutes = (currentFocusState.currentTime / 60000).toInt()
@@ -704,7 +709,12 @@ class FocusViewModel(
     }
 
     fun bankTime() {
-        val medalTime = focusUiState.medals.sumOf { it.value }
+        val medalTime = focusUiState.medals.sumOf { medal ->
+            when (medal.type) {
+                MedalType.MINUTES -> medal.value
+                MedalType.HOURS -> medal.value * 60
+            }
+        }
 
         if (medalTime > 0) {
             val currentGoalId = goalUiState?.goal?.id

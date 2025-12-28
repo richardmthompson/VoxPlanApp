@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.voxplanapp.ui.constants.PrimaryColor
 
 // Dark color scheme (not fully implemented - future enhancement)
 private val DarkColorScheme = darkColorScheme(
@@ -108,8 +109,14 @@ fun VoxPlanAppTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            // Using PrimaryColor from constants until theme migration is complete
+            window.statusBarColor = PrimaryColor.toArgb()
+            window.navigationBarColor = PrimaryColor.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                // Dark background = light icons
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
         }
     }
 

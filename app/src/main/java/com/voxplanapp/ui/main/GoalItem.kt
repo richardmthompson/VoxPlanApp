@@ -220,6 +220,7 @@ fun GoalItem(
                 .fillMaxWidth()
                 .padding(start = MediumDp, end = MediumDp, bottom = SmallDp)
                 .clip(RoundedCornerShape(bottomStart = MediumDp, bottomEnd = MediumDp))
+                .border(1.dp, TopLevelGoalBorderColor, RoundedCornerShape(bottomStart = MediumDp, bottomEnd = MediumDp))
                 .background(SubGoalItemBackGroundColor)
         ) {
 

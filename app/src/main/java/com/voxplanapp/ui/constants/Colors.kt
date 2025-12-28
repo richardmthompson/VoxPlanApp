@@ -3,6 +3,11 @@ package com.voxplanapp.ui.constants
 import androidx.compose.ui.graphics.Color
 
 val PrimaryColor = Color(0xFF0F0A2C)
+val Accent = Color(0xFF3F51B5)
+val AccentVariant = Color(0xFF838fcc)
+
+// used for background of main screen!
+val ContainerVariant = Color(0xFFcccccc)
 
 val PrimaryDarkColor = Color(0xFF009688)
 val PrimaryLightColor = Color(0xFF82BD85)
@@ -11,6 +16,8 @@ val SecondaryDarkColor = Color(0xFFB2DFDB)
 val TertiaryColor = Color(0xFF82babd)
 val TertiaryBorderColor = Color(0xFF51a0a3)
 val ActivatedColor = Color(0xFFB21720)
+
+val TertiaryVariant = Color(0xFF264b4c)
 
 val EventBoxColor = Color(0xFF41c300)
 

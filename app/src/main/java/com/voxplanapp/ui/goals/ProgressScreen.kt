@@ -1,13 +1,14 @@
 package com.voxplanapp.ui.goals
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,10 +22,13 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,13 +41,19 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.voxplanapp.ui.constants.TertiaryBorderColor
 import com.voxplanapp.AppViewModelProvider
-import com.voxplanapp.ui.constants.MediumDp
+import com.voxplanapp.navigation.VoxPlanTopAppBar
+import com.voxplanapp.ui.constants.ContainerVariant
+import com.voxplanapp.ui.constants.PrimaryColor
+import com.voxplanapp.ui.constants.TertiaryVariant
 import com.voxplanapp.ui.constants.TopAppBarBgColor
 import com.voxplanapp.ui.main.Diamond
 import java.time.DayOfWeek
@@ -51,6 +61,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 // ProgressScreen.kt
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreen(
     modifier: Modifier = Modifier,
@@ -58,54 +69,55 @@ fun ProgressScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val today = remember { LocalDate.now().dayOfWeek }
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    Column(
+    Scaffold(
         modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = ContainerVariant,
+        topBar = {
+            Column {
+
+                VoxPlanTopAppBar(
+                    title = "",
+                    canNavigateBack = false,
+                    scrollBehavior = scrollBehavior,
+                    actions = {
+                        // Header
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, bottom = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Progress",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryColor
+                            )
+                            WeekNavigator(
+                                currentWeek = uiState.currentWeek,
+                                onPreviousWeek = viewModel::previousWeek,
+                                onNextWeek = viewModel::nextWeek
+                            )
+                        }
+                    })
+            }
+        }
     ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Progress",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            WeekNavigator(
-                currentWeek = uiState.currentWeek,
-                onPreviousWeek = viewModel::previousWeek,
-                onNextWeek = viewModel::nextWeek
-            )
-        }
-
-        /*
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(2.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF002702),
-            ),
-        ) {
-            WeeklySummary(
-                weekTotal = uiState.weekTotal,
-                completedDays = uiState.completedDays
-            )
-        }
-
-         */
 
         // Daily Progress
         LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(
+                top = it.calculateTopPadding() + 10.dp,
+                bottom = 8.dp,
+                start = it.calculateStartPadding(LocalLayoutDirection.current),
+                end = it.calculateEndPadding(LocalLayoutDirection.current)
+            ),
+            modifier = Modifier.padding(horizontal = 8.dp)
         ) {
             items(uiState.dailyProgress) { dayProgress ->
                 DayProgressCard(
@@ -190,10 +202,10 @@ private fun DayProgressCard(
             .fillMaxWidth()
             .border(
                 2.dp,
-                borderColor,
+                TertiaryBorderColor,
                 RoundedCornerShape(8.dp)
             ),
-            colors = CardDefaults.cardColors(containerColor = cardColor)
+        colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -250,6 +262,7 @@ fun EmeraldIcon(
         }
     )
 }
+
 @Composable
 fun Gem(
     modifier: Modifier = Modifier,

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.voxplanapp.data.GoalWithSubGoals
+import com.voxplanapp.ui.constants.TertiaryBorderColor
 import com.voxplanapp.ui.constants.ToolbarBorderColor
 import com.voxplanapp.ui.constants.ToolbarColor
 import com.voxplanapp.ui.constants.ToolbarIconColor
@@ -62,6 +63,7 @@ fun BreadcrumbNavigation(
         Column(
             modifier = modifier
                 .fillMaxWidth()
+                .border(1.dp, TertiaryBorderColor)
                 .onSizeChanged { size -> availableWidth = size.width }
         ) {
             val lines = createBreadcrumbLines(breadcrumbs, availableWidth, layoutDims)
