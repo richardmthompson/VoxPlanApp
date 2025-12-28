@@ -8,6 +8,7 @@ val AccentVariant = Color(0xFF838fcc)
 
 // used for background of main screen!
 val ContainerVariant = Color(0xFFcccccc)
+val ContainerDarkerVariant = Color(0xFFe6e6e6)
 
 val PrimaryDarkColor = Color(0xFF009688)
 val PrimaryLightColor = Color(0xFF82BD85)
@@ -39,6 +40,8 @@ val ToolbarBorderColor = Color(0xFFffddb0)
 //val ToolbarBorderColor = Color(0xFFBDBDBD)
 val ToolbarIconColor = Color(0xFF424242)
 val TopAppBarBgColor = TertiaryColor
+
+val ToolbarVariant = Color(0xFFccc6bd)
 
 val TitlebarColor = Color(0xFFffddb0)
 val TitlebarBorderColor = Color(0xFFF8B758)

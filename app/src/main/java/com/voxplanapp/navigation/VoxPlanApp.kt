@@ -58,12 +58,16 @@ import com.voxplanapp.R
 import com.voxplanapp.model.ActionMode
 import com.voxplanapp.ui.constants.AccentVariant
 import com.voxplanapp.ui.constants.ActivatedColor
+import com.voxplanapp.ui.constants.ContainerDarkerVariant
+import com.voxplanapp.ui.constants.ContainerVariant
 import com.voxplanapp.ui.constants.PrimaryColor
 import com.voxplanapp.ui.constants.PrimaryDarkColor
 import com.voxplanapp.ui.constants.PrimaryLightColor
 import com.voxplanapp.ui.constants.TertiaryBorderColor
 import com.voxplanapp.ui.constants.TertiaryVariant
+import com.voxplanapp.ui.constants.ToolbarColor
 import com.voxplanapp.ui.constants.ToolbarIconColor
+import com.voxplanapp.ui.constants.ToolbarVariant
 import com.voxplanapp.ui.constants.TopAppBarBgColor
 import java.time.LocalDate
 
@@ -286,10 +290,9 @@ fun BottomNavigationBar(
 
     val selectedItemIndex by viewModel.selectedItemIndex.collectAsState()
 
-    NavigationBar (
-        containerColor = PrimaryColor,
-        contentColor = PrimaryDarkColor,
-    ){
+    NavigationBar(
+        containerColor = ContainerDarkerVariant
+    ) {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = selectedItemIndex == index,
@@ -308,19 +311,15 @@ fun BottomNavigationBar(
                 },
                 icon = {
                     Icon(
-                    imageVector =
-                        if (index == selectedItemIndex) item.selectedIcon
-                        else item.unselectedIcon,
+                        imageVector =
+                            if (index == selectedItemIndex) item.selectedIcon
+                            else item.unselectedIcon,
                         contentDescription = item.title
                     )
                 },
                 label = { Text(item.title) },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = PrimaryLightColor,
-                    selectedIconColor = PrimaryColor,
-                    selectedTextColor = PrimaryLightColor,
-                    unselectedIconColor = TertiaryVariant,
-                    unselectedTextColor = PrimaryLightColor
+                    indicatorColor = ContainerVariant
                 )
             )
         }

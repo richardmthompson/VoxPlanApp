@@ -155,7 +155,7 @@ fun DisplayBreadCrumbLine(
             .horizontalScroll(rememberScrollState())
             .background(color = ToolbarColor, shape = RoundedCornerShape(2.dp))
             .border(1.dp, color = ToolbarBorderColor, shape = RoundedCornerShape(2.dp))
-            .padding(top = 0.dp)
+            .padding(vertical = 4.dp)
     ) {
         line.forEach { item ->
             Text(
