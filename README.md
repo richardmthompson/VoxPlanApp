@@ -34,13 +34,8 @@ Set time commitments for each goal:
 ### Gamified Focus Mode
 A timer that makes focused work rewarding:
 
-| Medal | Time Required |
-|-------|---------------|
-| 🥉 Bronze | 30 minutes |
-| 🥈 Silver | 60 minutes |
-| 🥇 Gold | 90 minutes |
-| 💎 Diamond | 120+ minutes |
-
+- **Medals** — Earn a medal for every 30 minutes of focused work
+- **Crystals** — Achieve a crystal when you log 4+ hours in a single day
 - **Pomodoro-style work/rest cycles**
 - **Sound effects** for medal awards
 - **Time banking** — earned time is saved and tracked
@@ -85,7 +80,7 @@ A timer that makes focused work rewarding:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/VoxPlanApp.git
+git clone https://github.com/richardmthompson/VoxPlanApp.git
 cd VoxPlanApp
 
 # Build debug APK
