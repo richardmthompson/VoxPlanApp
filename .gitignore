@@ -31,3 +31,12 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Development folders and configuration
+.beads
+.claude
+CLAUDE.md
+
+# Release signing
+release-keystore.jks
+keystore.properties
