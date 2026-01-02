@@ -24,7 +24,7 @@ class QuotaRepository(private val quotaDao: QuotaDao) {
 
     fun isQuotaActiveForDate(quota: Quota, date: LocalDate): Boolean {
         val dayIndex = date.dayOfWeek.value - 1 // 0-6 for Mon-Sun
-        return quota.activeDays[dayIndex] == '1'
+        return quota.activeDays.length == 7 && quota.activeDays[dayIndex] == '1'
     }
 
     fun getActiveDays(quota: Quota): List<DayOfWeek> {
@@ -41,6 +41,11 @@ class QuotaRepository(private val quotaDao: QuotaDao) {
             quotas.filter { quota ->
                 // Check if the quota is active for today by checking the corresponding bit
                 // in the activeDays string
+                // Validate activeDays string length before accessing to prevent crashes
+                if (quota.activeDays.length != 7) {
+                    android.util.Log.e("QuotaRepository", "Invalid activeDays length for quota ${quota.id}: '${quota.activeDays}' (expected 7 chars)")
+                    return@filter false
+                }
                 quota.activeDays[dayOfWeek] == '1'
             }
         }

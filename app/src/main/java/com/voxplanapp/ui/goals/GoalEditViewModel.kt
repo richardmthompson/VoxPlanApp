@@ -125,8 +125,13 @@ class GoalEditViewModel(
                             append(if (DayOfWeek.of(i) in goalUiState.quotaActiveDays) "1" else "0")
                         }
                     }
+
+                    // Get existing quota to preserve its ID and prevent duplicates
+                    val existingQuota = quotaRepository.getQuotaForGoal(goalWithSubGoals.goal.id).first()
+
                     quotaRepository.insertQuota(
                         Quota(
+                            id = existingQuota?.id ?: 0,  // Use existing ID or let Room auto-generate
                             goalId = goalWithSubGoals.goal.id,
                             dailyMinutes = goalUiState.quotaMinutes,
                             activeDays = activeDaysString
